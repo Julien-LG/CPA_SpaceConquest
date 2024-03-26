@@ -1,0 +1,3 @@
+-modifier animateSpaceship : faire en sorte de faire tourner en rond les vaisseaux
+-faire une liste des emplacements de planetes
+-afficher les vaisseaux à partir des emplacements des planetes
