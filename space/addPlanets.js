@@ -22,8 +22,16 @@ export function addPlanets(app, planets)
         planet.anchor.set(0.5);
 
         // Randomly position the planet sprite around the stage.
-        planet.x = Math.random() * app.screen.width;
-        planet.y = Math.random() * app.screen.height;
+        if (i % 2 === 0)
+        {
+            planet.x = 100;
+            planet.y = 100;
+        }
+        else {
+            planet.x = app.screen.width - 100;
+            planet.y = app.screen.height -100;
+        }
+        
 
         // Randomly scale the planet sprite to create some variety.
         planet.scale.set(0.05);
