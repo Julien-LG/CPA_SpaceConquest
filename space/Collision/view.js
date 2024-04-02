@@ -2,14 +2,14 @@ class View {
     constructor() {
         this.canvas = document.getElementById('canvas');
         this.ctx = this.canvas.getContext('2d');
-        this.canvas.style.backgroundColor = 'white';
+        this.canvas.style.backgroundColor = 'black';
     }
 
-    drawAll(model) {
+    drawAll(model, selectionStart, selectionEnd) {
         // Clear the canvas, draw triangles, the circle, and HP
         model.triangles.forEach(triangle => this.drawTriangle(triangle));
-        this.drawCircle(model.circle);
-        this.drawSelectionArea(model.selectionStart, model.selectionEnd);
+        model.circles.forEach(circle => this.drawCircle(circle));
+        this.drawSelectionArea(selectionStart,selectionEnd);
     }
 
     drawTriangle(triangle) {
@@ -23,8 +23,8 @@ class View {
 
         // Si le triangle est slectionné, dessine un contour orange
         if (triangle.selected) {
-            this.ctx.strokeStyle = 'brightorange';
-            this.ctx.lineWidth = 5; 
+            this.ctx.strokeStyle = 'orange';
+            this.ctx.lineWidth = 3; 
             this.ctx.stroke(); // Dessine le contour
         }
     }
@@ -38,22 +38,23 @@ class View {
     drawCircle(circle) {
         this.ctx.beginPath();
         this.ctx.arc(circle.x, circle.y, circle.radius, 0, 2 * Math.PI);
-        this.ctx.fillStyle = 'green';
+        this.ctx.fillStyle = circle.color;
         this.ctx.fill();
 
         this.ctx.fillStyle = 'white';
         this.ctx.font = '14px Arial';
-        this.ctx.fillText(`HP: ${circle.hp}`, circle.x - 15, circle.y + 5);
+        this.ctx.fillText(`HP: ${circle.hp}`, circle.x - 20, circle.y + 5);
     }
 
     drawSelectionArea(start, end) {
         // Dessine la zone de sélection
-        if (!start || !end) return;
-        this.ctx.beginPath();
-        this.ctx.rect(start.x, start.y, end.x - start.x, end.y - start.y);
-        this.ctx.strokeStyle = 'black';
-        this.ctx.lineWidth = 3; 
-        this.ctx.stroke();
-        this.ctx.closePath();
+        if (start && end) {
+            this.ctx.beginPath();
+            this.ctx.rect(start.x, start.y, end.x - start.x, end.y - start.y);
+            this.ctx.strokeStyle = 'white';
+            this.ctx.lineWidth = 3; 
+            this.ctx.stroke();
+            this.ctx.closePath();
+        }
     }
 }

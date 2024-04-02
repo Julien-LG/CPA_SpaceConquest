@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const appModel = new Model();
+    const appCollison = new Collision();
+    const appModel = new Model(appCollison);
     const appView = new View();
     const appController = new Controller(appModel, appView);
 
