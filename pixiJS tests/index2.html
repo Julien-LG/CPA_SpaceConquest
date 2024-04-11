@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixi.js Example</title>
+    <script src="pixi.js"></script>
+</head>
+<body>
+    <script>
+        // Créer une application Pixi.js
+        const app = new PIXI.Application({ width: 800, height: 600 });
+
+        // Ajouter le canvas de l'application à la page HTML
+        document.body.appendChild(app.canvas);
+
+        // Charger une image
+        /*PIXI.Loader.shared.add('image', 'chemin/vers/votre/image.png').load((loader, resources) => {
+            // Créer un sprite à partir de l'image chargée
+            const sprite = new PIXI.Sprite(resources.image.texture);
+
+            // Positionner le sprite
+            sprite.x = 100;
+            sprite.y = 100;
+
+            // Ajouter le sprite à la scène
+            app.stage.addChild(sprite);
+        });*/
+    </script>
+</body>
+</html>
