@@ -59,8 +59,10 @@ export const setupEventListeners= (controller : OurController) => {
     view.canvas.addEventListener('contextmenu', e => e.preventDefault());
 }
 
-export const startGame = () => {
+const startGame = ({height, width} : { height: number; width: number })=> {
     const controller = initController();
     setupEventListeners(controller);
     animate(controller);
 }
+
+export default startGame;
