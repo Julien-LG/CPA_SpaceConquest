@@ -127,15 +127,22 @@ class Model {
 
                 // Vérifie la collision avec les cercles
                 this.circles.forEach(circle => {
-                    /*if (this.collision.checkCollisionWithCircle(triangle, circle)) {
-                        circle.hp -= 1; // Réduit les points de vie du cercle
-                        if (circle.hp <= 0) {
-                            circle.color = triangle.color; // Change la couleur du cercle à celle du triangle
-                            circle.hp = 10; // Réinitialise les points de vie
+                    if (this.collision.checkCollisionWithCircle(triangle, circle)) {
+                        if (triangle.color === circle.color) {
+                            circle.hp += 1; // Augmente les points de vie du cercle
+                            console.log("test");
+                        }
+                        else {
+                            circle.hp -= 1; // Réduit les points de vie du cercle
+                            if (circle.hp <= 0) {
+                                circle.color = triangle.color; // Change la couleur du cercle à celle du triangle
+                                circle.hp = 10; // Réinitialise les points de vie
+                            }
+                            console.log("test2");
                         }
                         keepTriangle = false; // Supprime le triangle en cas de collision
-                    }*/
-                    keepTriangle = this.collisionsGestion(triangle, circle);
+                    }
+                    //keepTriangle = this.collisionsGestion(triangle, circle);
                     console.log(keepTriangle);
                 });
             }
