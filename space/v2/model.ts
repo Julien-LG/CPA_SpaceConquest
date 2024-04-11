@@ -1,6 +1,9 @@
 import * as coll from "./collision";
+import * as conf from "./conf";
 
-type Point = { x: number, y: number };
+
+
+export type Point = { x: number, y: number };
 export type Triangle = {
     points : Point[],
     size : number, 
@@ -51,7 +54,7 @@ export const initModel = (): OurModel => {
 /*******************************************************************
      * Fonctions de déplacement
 *******************************************************************/
-export const selectTrianglesInArea = (start, end, modele : OurModel) => {
+export const selectTrianglesInArea = (start : Point, end : Point, modele : OurModel) => {
     // Sélectionne les triangles dans la zone spécifiée par l'utilisateur
     const selectionRect = {
         x1: Math.min(start.x, end.x),
@@ -80,10 +83,12 @@ export const selectTrianglesInArea = (start, end, modele : OurModel) => {
 }
 
 // Réoriente le triangle pour qu'il pointe vers la destination
-const reorientTriangle = (triangle) : Triangle=> {
+const reorientTriangle = (triangle : Triangle) : Triangle=> {
     const center = triangle.center; // Utilisez le centre précalculé pour la rotation
     const destination = triangle.destination;
 
+    // Si aucune destination n'est définie, retournez le triangle tel quel théoriquement impossible mais vérification obligatoire
+    if (!destination) return triangle;
     // Calculez l'angle de direction vers la destination
     const angleToDestination = Math.atan2(destination.y - center.y, destination.x - center.x);
 
@@ -189,6 +194,18 @@ const moveTriangles = (model : OurModel ) : OurModel => {
     return { triangles: newtriangles, circles: model.circles, startSelec: model.startSelec, endSelec: model.endSelec };
 }
 
+export const winGame = (model : OurModel) : boolean => {
+    const colors = model.circles.map(circle => circle.color);
+    return colors.every(color => color === conf.PLAYERCOLOR);
+}
+export const loseGame = (model : OurModel) : boolean => {
+    const colors = model.circles.map(circle => circle.color);
+    return colors.every(color => color !== conf.PLAYERCOLOR);
+}
+
+/*******************************************************************
+     * Fonctions pour les événements
+*******************************************************************/
 export const setDestination = (model : OurModel, destination : Point) : OurModel => {
     // Définit la destination et initie le mouvement pour les triangles sélectionnés
     model.triangles = model.triangles.map(triangle => {
