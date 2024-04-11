@@ -58,3 +58,9 @@ export const setupEventListeners= (controller : OurController) => {
     // Prevents the context menu from showing on right-click
     view.canvas.addEventListener('contextmenu', e => e.preventDefault());
 }
+
+export const startGame = () => {
+    const controller = initController();
+    setupEventListeners(controller);
+    animate(controller);
+}
