@@ -3,18 +3,16 @@ import { OurModel } from "./model";
 
 export type OurController = {
     view: ViewRender,
-    modele: OurModel,
+    model: OurModel,
 };
 
 export const initController = (model: OurModel, view: ViewRender): OurController => {
-    return {
-        view,
-        modele: model
-    };
+    const  controller: OurController = {view, model};
+    return controller;
 }
 
 export const animate = (controller: OurController) => {
-    const { view, modele } = controller;
-    drawAll(view, modele);
+    const { view, model } = controller;
+    drawAll(view, model);
     requestAnimationFrame(() => animate(controller));
 }
