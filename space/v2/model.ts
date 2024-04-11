@@ -23,8 +23,13 @@ export type OurModel = {
     circles: Circle[]
     startSelec: Point | null,
     endSelec: Point | null,
+    events : PointerEvent[]
 };
 
+
+export const initModel = (): OurModel => {
+    return { triangles: [], circles: [], startSelec: null, endSelec: null, events: [] };
+}
 
 // Fonctions pour creer et ajouter des triangles et cercles dans le modele
 const addTriangle = (model: OurModel, triangle: Triangle): OurModel => {
@@ -32,7 +37,8 @@ const addTriangle = (model: OurModel, triangle: Triangle): OurModel => {
         triangles: model.triangles.concat(triangle), 
         circles: model.circles, 
         startSelec: model.startSelec, 
-        endSelec: model.endSelec
+        endSelec: model.endSelec,
+        events: model.events
     };
 }
 
@@ -41,12 +47,9 @@ const addCircle = (model: OurModel, circle: Circle): OurModel => {
         triangles: model.triangles, 
         circles: model.circles.concat(circle), 
         startSelec: model.startSelec, 
-        endSelec: model.endSelec
+        endSelec: model.endSelec,
+        events: model.events
     };
-}
-
-export const initModel = (): OurModel => {
-    return { triangles: [], circles: [], startSelec: null, endSelec: null };
 }
 
 
@@ -79,7 +82,13 @@ export const selectTrianglesInArea = (start : Point, end : Point, modele : OurMo
         };
         return newTriangle;
     });
-    return { triangles: newtriangles, circles: modele.circles, startSelec: start, endSelec: end };
+    return { 
+        triangles: newtriangles, 
+        circles: modele.circles, 
+        startSelec: null, 
+        endSelec: null, 
+        events: modele.events
+    };
 }
 
 // Réoriente le triangle pour qu'il pointe vers la destination
@@ -191,7 +200,13 @@ const moveTriangles = (model : OurModel ) : OurModel => {
         }
         return keepTriangle; // Garde le triangle s'il n'y a pas de collision
     });
-    return { triangles: newtriangles, circles: model.circles, startSelec: model.startSelec, endSelec: model.endSelec };
+    return { 
+        triangles: newtriangles, 
+        circles: model.circles, 
+        startSelec: model.startSelec, 
+        endSelec: model.endSelec, 
+        events: model.events 
+    };
 }
 
 export const winGame = (model : OurModel) : boolean => {
@@ -224,3 +239,123 @@ export const setDestination = (model : OurModel, destination : Point) : OurModel
     
     return moveTriangles(model); // Commence le mouvement
 }
+
+const onleftclick = (model : OurModel, destination : Point) : OurModel => {
+    return setDestination(model, destination);
+}
+
+const onrightclick = (model : OurModel, start : Point) : OurModel => {
+    return { 
+        triangles: model.triangles, 
+        circles: model.circles, 
+        startSelec: start, 
+        endSelec: null, 
+        events: model.events
+    };
+}
+
+const onmousemove = (model : OurModel, end : Point) : OurModel => {
+    return { 
+        triangles: model.triangles, 
+        circles: model.circles, 
+        startSelec: model.startSelec, 
+        endSelec: end, 
+        events: model.events
+    };
+}
+
+const onmouseup = (model : OurModel) : OurModel => {
+    if (!model.startSelec || !model.endSelec) return model; // Aucune sélection en cours // Impossible normalement
+    return selectTrianglesInArea(model.startSelec, model.endSelec, model);
+}
+
+export const executeEvents = (model : OurModel) : OurModel => {
+    const newmodel = model.events.reduce((acc, event) => {
+        switch (event.type) {
+            case 'click':
+                return onleftclick(acc, { x: event.offsetX, y: event.offsetY });
+            case 'mousedown':
+                return onrightclick(acc, { x: event.offsetX, y: event.offsetY });
+            case 'mousemove':
+                return onmousemove(acc, { x: event.offsetX, y: event.offsetY });
+            case 'mouseup':
+                return onmouseup(acc);
+            default:
+                return acc;
+        }
+    }, model);
+    return { 
+        triangles: newmodel.triangles, 
+        circles: newmodel.circles, 
+        startSelec: newmodel.startSelec, 
+        endSelec: newmodel.endSelec, 
+        events: []
+    };
+}
+
+export const addEvent = (model : OurModel, event : PointerEvent) : OurModel => {
+    return { 
+        triangles: model.triangles, 
+        circles: model.circles, 
+        startSelec: model.startSelec, 
+        endSelec: model.endSelec, 
+        events: model.events.concat(event)
+    };
+}
+
+
+// Fonction de tests, génération de triangles et cercles
+const generateTriangles = (model : OurModel, number : number) : OurModel => {
+    for (let i = 0; i < number; i++) {
+        const x = Math.random() * 800;
+        const y = Math.random() * 600;
+        const size = Math.random() * 20 + 10;
+        const points = [
+            { x: x, y: y - size },
+            { x: x - size, y: y + size },
+            { x: x + size, y: y + size }
+        ];
+        const center = { x: x, y: y };
+        const color = conf.ENEMYCOLOR1;
+        const triangle : Triangle = {
+            points : points, 
+            size : size, 
+            center : center, 
+            color : color, 
+            selected : false, 
+            destination : null
+        };
+        model = addTriangle(model, triangle);
+    }
+    return model;
+}
+const generateCircles = (model : OurModel) : OurModel => {
+    const x = 100;
+    const y = 100;
+    const radius = conf.BIGPLANETRADIUS;
+    const center = { x: x, y: y };
+    const color = conf.ENEMYCOLOR1;
+    const hp = conf.BIGPLANETLIFE;
+    const circle : Circle = { center: center, radius: radius, color: color, hp: hp };
+    model = addCircle(model, circle);
+    
+    const x2 = 300;
+    const y2 = 300;
+    const radius2 = conf.BIGPLANETRADIUS;
+    const center2 = { x: x2, y: y2 };
+    const color2 = conf.PLAYERCOLOR;
+    const hp2 = conf.BIGPLANETLIFE;
+    const circle2 : Circle = { center: center2, radius: radius2, color: color2, hp: hp2 };
+    model = addCircle(model, circle2);
+
+    return model;
+}
+
+export const createGameTest = () => {
+    let model = initModel();
+    model = generateTriangles(model, 10);
+    model = generateCircles(model);
+    return model;
+}
+
+
