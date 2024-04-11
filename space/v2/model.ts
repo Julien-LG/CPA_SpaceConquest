@@ -23,7 +23,7 @@ export type OurModel = {
     circles: Circle[]
     startSelec: Point | null,
     endSelec: Point | null,
-    events : PointerEvent[]
+    events : MouseEvent[]
 };
 
 
@@ -223,7 +223,7 @@ export const loseGame = (model : OurModel) : boolean => {
 *******************************************************************/
 export const setDestination = (model : OurModel, destination : Point) : OurModel => {
     // Définit la destination et initie le mouvement pour les triangles sélectionnés
-    model.triangles = model.triangles.map(triangle => {
+    const newtriangles = model.triangles.map(triangle => {
         if (triangle.selected) {
             return reorientTriangle(
                 {points : triangle.points, 
@@ -237,7 +237,14 @@ export const setDestination = (model : OurModel, destination : Point) : OurModel
         return triangle;
     });
     
-    return moveTriangles(model); // Commence le mouvement
+    //return moveTriangles(model); // Commence le mouvement
+    return {
+        triangles: newtriangles, 
+        circles: model.circles, 
+        startSelec: model.startSelec, 
+        endSelec: model.endSelec, 
+        events: model.events
+    };
 }
 
 const onleftclick = (model : OurModel, destination : Point) : OurModel => {
@@ -269,7 +276,7 @@ const onmouseup = (model : OurModel) : OurModel => {
     return selectTrianglesInArea(model.startSelec, model.endSelec, model);
 }
 
-export const executeEvents = (model : OurModel) : OurModel => {
+const executeEvents = (model : OurModel) : OurModel => {
     const newmodel = model.events.reduce((acc, event) => {
         switch (event.type) {
             case 'click':
@@ -293,7 +300,7 @@ export const executeEvents = (model : OurModel) : OurModel => {
     };
 }
 
-export const addEvent = (model : OurModel, event : PointerEvent) : OurModel => {
+export const addEvent = (model : OurModel, event : MouseEvent) : OurModel => {
     return { 
         triangles: model.triangles, 
         circles: model.circles, 
@@ -303,6 +310,10 @@ export const addEvent = (model : OurModel, event : PointerEvent) : OurModel => {
     };
 }
 
+export const updateModel = (model : OurModel) : OurModel => {
+    const newModel = executeEvents(model);
+    return moveTriangles(newModel);
+}
 
 // Fonction de tests, génération de triangles et cercles
 const generateTriangles = (model : OurModel, number : number) : OurModel => {

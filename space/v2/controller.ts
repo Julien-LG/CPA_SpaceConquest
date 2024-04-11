@@ -1,4 +1,4 @@
-import { OurModel, initModel, executeEvents, addEvent, createGameTest } from "./model";
+import { OurModel, initModel, updateModel, addEvent, createGameTest } from "./model";
 import { initView, ViewRender, drawAll } from "./view";
 
 
@@ -15,13 +15,13 @@ export const initController = (): OurController => {
 }
 
 export const animate = (controller: OurController) => {
-    controller.model = executeEvents(controller.model);
+    controller.model = updateModel(controller.model);
     const { view, model } = controller;
     drawAll(view, model);
     requestAnimationFrame(() => animate(controller));
 }
 
-export const setupEventListeners= (controller : Controller) => {
+export const setupEventListeners= (controller : OurController) => {
     const view = controller.view;
     controller.model;
     // Initializes event listeners for user interaction
@@ -36,14 +36,14 @@ export const setupEventListeners= (controller : Controller) => {
 
     // Drag to select an area
     view.canvas.addEventListener('mousemove', e => {
-        if (controller.model.selectionStart) {
+        if (controller.model.startSelec) {
             controller.model = addEvent(controller.model, e);
         }
     });
 
     // Release right-click to finalize selection
     view.canvas.addEventListener('mouseup', e => {
-        if (e.button === 2 && controller.model.selecStart) {
+        if (e.button === 2 && controller.model.startSelec) {
             controller.model = addEvent(controller.model, e);
         }
     });
