@@ -1,3 +1,10 @@
 -modifier animateSpaceship : faire en sorte de faire tourner en rond les vaisseaux
 -faire une liste des emplacements de planetes
 -afficher les vaisseaux à partir des emplacements des planetes
+
+
+-changement de camp d'une planete : https://pixijs.com/8.x/examples/sprite/texture-swap
+-collisions de carrés : https://pixijs.com/8.x/examples/advanced/collision-detection
+
+
+-fond étoilé animé : https://pixijs.com/8.x/examples/advanced/star-warp
