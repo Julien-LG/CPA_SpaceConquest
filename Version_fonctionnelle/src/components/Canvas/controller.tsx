@@ -1,33 +1,47 @@
 import { useRef, useEffect } from 'react'
 
-import { OurModel, updateModel, addEvent, createGameTest, winGame, loseGame } from "./model";
+import { OurModel, updateModel, addEvent, generateTrianglesAroundCircles, createGameTest, winGame, loseGame } from "./model";
 import { initView, ViewRender, drawAll } from "./view";
 
 
 export type OurController = {
     view: ViewRender,
     model: OurModel,
+    height: number,
+    width: number
 };
 
-export const initController = (canvas: HTMLCanvasElement): OurController => {
-    const newModel = createGameTest();
+export const initController = (canvas: HTMLCanvasElement, height: number, width: number): OurController => {
+    const newModel = createGameTest(height, width);
     const newView = initView(canvas);
-    const controller: OurController = {view: newView, model: newModel};
+    const controller: OurController = {view: newView, model: newModel, height, width};
     return controller;
 };
 
 export const animate = (controller: OurController) => {
-    controller.model = updateModel(controller.model);
-    const { view, model } = controller;
-    drawAll(view, model);
-    if (!winGame(model) && !loseGame(model)) {
-        requestAnimationFrame(() => animate(controller));
-    }
+    const update = () => {
+        controller.model = updateModel(controller.model);
+        const { view, model } = controller;
+        drawAll(view, model);
+
+        if (!winGame(model) && !loseGame(model)) {
+            requestAnimationFrame(update);
+        }
+    };
+
+    update();
+
+    // Set up a timer to generate triangles every 2 seconds
+    const intervalId = setInterval(() => {
+        controller.model = generateTrianglesAroundCircles(controller.model);
+    }, 2000);
+
+    // Optionally clear this interval when the game ends or on component unmount
+    return () => clearInterval(intervalId);
 }
 
 export const setupEventListeners= (controller : OurController) => {
     const view = controller.view;
-    const model = controller.model;
     // Initializes event listeners for user interaction
     
     // Right-click to start selecting triangles
@@ -52,21 +66,20 @@ export const setupEventListeners= (controller : OurController) => {
         }
     });
 
-    // Left-click to move selected triangles
+    //click
     view.canvas.addEventListener('click', e => {
-        if (e.button === 0) { // Left mouse button
-            controller.model = addEvent(controller.model, e);
-        }
+        controller.model = addEvent(controller.model, e);
     });
 
     // Prevents the context menu from showing on right-click
     view.canvas.addEventListener('contextmenu', e => e.preventDefault());
+    controller.view = view;
 }
 
 const StartGame = ({height, width} : { height: number; width: number })=> {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     useEffect(() => {
-        const controller = initController(canvasRef.current!);
+        const controller = initController(canvasRef.current!, height, width);
         if (canvasRef.current) {
             controller.view.canvas = canvasRef.current;
             setupEventListeners(controller);

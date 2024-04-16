@@ -52,9 +52,49 @@ export const checkCollisionWithCircle = (triangle : Triangle,circle : Circle) =>
 }
 
 
-// Fonctiosn de collision entre triangles A finir
-/*
-export const checkCollisionWithTriangle = (triangle1, triangle2) => {
+// Fonctions de collision entre triangles 
+const isPointInsideTriangle = (point : Point, triangle : Triangle) : boolean => {
+    const {x: px, y: py} = point;
+    const [v1, v2, v3] = triangle.points;
+
+    const areaOrig = Math.abs((v2.x - v1.x) * (v3.y - v1.y) - (v2.y - v1.y) * (v3.x - v1.x));
+    const area1 = Math.abs((v1.x - px) * (v2.y - py) - (v1.y - py) * (v2.x - px));
+    const area2 = Math.abs((v2.x - px) * (v3.y - py) - (v2.y - py) * (v3.x - px));
+    const area3 = Math.abs((v3.x - px) * (v1.y - py) - (v3.y - py) * (v1.x - px));
+
+    return area1 + area2 + area3 == areaOrig;
+}
+
+const segmentIntersectsTriangle = (start : Point, end : Point, triangle : Triangle) : boolean => {
+    // Check if endpoints are inside the triangle
+    if (isPointInsideTriangle(start, triangle) || isPointInsideTriangle(end, triangle)) {
+        return true;
+    }
+
+    // Check if segment intersects any triangle side
+    for (let i = 0; i < triangle.points.length; i++) {
+        const tStart = triangle.points[i];
+        const tEnd = triangle.points[(i + 1) % triangle.points.length];
+        if (segmentsIntersect(start, end, tStart, tEnd)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+const segmentsIntersect = (p1 : Point , p2 : Point, q1 : Point , q2 : Point) => {
+    // Calculate parts of the segment intersection formula
+    const det = (q2.y - q1.y) * (p2.x - p1.x) - (q2.x - q1.x) * (p2.y - p1.y);
+    if (det === 0) return false; // lines are parallel
+
+    const lambda = ((q2.x - q1.x) * (q1.y - p1.y) - (q2.y - q1.y) * (q1.x - p1.x)) / det;
+    const gamma = ((p1.x - p2.x) * (q1.y - p1.y) - (p1.y - p2.y) * (q1.x - p1.x)) / det;
+
+    return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+}
+
+
+export const checkCollisionWithTriangle = (triangle1 : Triangle, triangle2 : Triangle) => {
     // Vérifie la collision entre chaque sommet du triangle 1 et le triangle 2
     for (let point of triangle1.points) {
         if (isPointInsideTriangle(point, triangle2)) {
@@ -81,17 +121,16 @@ export const checkCollisionWithTriangle = (triangle1, triangle2) => {
 }
 
 // Applique la vélocité aux triangles rouges et gère les collisions avec les bords du canvas
-export const applyVelocityAndCheckBorders = (triangles) => {
-    velocity.x *= friction;
-    velocity.y *= friction;
-    triangles.forEach(triangle => {
-        triangle.points.forEach(point => {
-            point.x += velocity.x;
-            point.y += velocity.y;
-            // Inversion de la vélocité en cas de collision avec un bord pour simuler un rebond
-            if (point.x < 0 || point.x > canvas.width) velocity.x = -velocity.x;
-            if (point.y < 0 || point.y > canvas.height) velocity.y = -velocity.y;
-        });
-    });
-}
-*/
+// export const applyVelocityAndCheckBorders = (triangles) => {
+//     velocity.x *= friction;
+//     velocity.y *= friction;
+//     triangles.forEach(triangle => {
+//         triangle.points.forEach(point => {
+//             point.x += velocity.x;
+//             point.y += velocity.y;
+//             // Inversion de la vélocité en cas de collision avec un bord pour simuler un rebond
+//             if (point.x < 0 || point.x > canvas.width) velocity.x = -velocity.x;
+//             if (point.y < 0 || point.y > canvas.height) velocity.y = -velocity.y;
+//         });
+//     });
+// }

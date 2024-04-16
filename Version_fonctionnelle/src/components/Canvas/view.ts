@@ -30,6 +30,11 @@ const drawTriangle = (ctx: CanvasRenderingContext2D, triangle: Triangle) => {
         ctx.lineWidth = 3; 
         ctx.stroke(); // Dessine le contour
     }
+    else {
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 1; 
+        ctx.stroke(); // Dessine le contour
+    }
 }
 
 const drawCircle = (ctx: CanvasRenderingContext2D, circle: Circle) => {
@@ -42,6 +47,10 @@ const drawCircle = (ctx: CanvasRenderingContext2D, circle: Circle) => {
     ctx.fillStyle = 'white';
     ctx.font = '14px Arial';
     ctx.fillText(`HP: ${circle.hp}`, circle.center.x - 20, circle.center.y + 5);
+
+    ctx.strokeStyle = 'grey';
+    ctx.lineWidth = 1.5; 
+    ctx.stroke(); // Dessine le contour
 }
 
 const drawSelectionArea = (ctx: CanvasRenderingContext2D, model: OurModel) => {

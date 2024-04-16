@@ -55,10 +55,13 @@ const addCircle = (model: OurModel, circle: Circle): OurModel => {
 
 
 /*******************************************************************
-     * Fonctions de déplacement
+     * Fonctions de séléction et déplacement des triangles
 *******************************************************************/
-export const selectTrianglesInArea = (start : Point, end : Point, modele : OurModel) => {
+export const selectTrianglesInArea = (model : OurModel) => {
     // Sélectionne les triangles dans la zone spécifiée par l'utilisateur
+    if (!model.startSelec || !model.endSelec) return model;
+    const start = model.startSelec;
+    const end = model.endSelec;
     const selectionRect = {
         x1: Math.min(start.x, end.x),
         y1: Math.min(start.y, end.y),
@@ -66,12 +69,12 @@ export const selectTrianglesInArea = (start : Point, end : Point, modele : OurMo
         y2: Math.max(start.y, end.y)
     };
 
-    const newtriangles = modele.triangles.map(triangle => {
+    const newtriangles = model.triangles.map(triangle => {
+        if (triangle.color !== conf.PLAYERCOLOR) return triangle; // Ignore les triangles ennemis
         const centerX = triangle.center.x;
         const centerY = triangle.center.y;
         const selected = centerX >= selectionRect.x1 && centerX <= selectionRect.x2 &&
                             centerY >= selectionRect.y1 && centerY <= selectionRect.y2;
-        //if (triangle.destination == null) return createTriangle(triangle.points, triangle.size, triangle.center, triangle.color, selected, null);
         const newTriangle :  Triangle = {
             points : triangle.points,
             size : triangle.size, 
@@ -84,10 +87,10 @@ export const selectTrianglesInArea = (start : Point, end : Point, modele : OurMo
     });
     return { 
         triangles: newtriangles, 
-        circles: modele.circles, 
+        circles: model.circles, 
         startSelec: null, 
         endSelec: null, 
-        events: modele.events
+        events: model.events
     };
 }
 
@@ -131,25 +134,25 @@ const reorientTriangle = (triangle : Triangle) : Triangle=> {
 }
 
 
-const collisionsGestion = (triangle : Triangle, circle : Circle) : boolean => {
-    if (coll.checkCollisionWithCircle(triangle, circle)) {
-        if (triangle.color === circle.color) {
-            circle.hp += 1; // Augmente les points de vie du cercle
-            console.log("test");
-        }
-        else {
-            circle.hp -= 1; // Réduit les points de vie du cercle
-            if (circle.hp <= 0) {
-                circle.color = triangle.color; // Change la couleur du cercle à celle du triangle
-                circle.hp = 10; // Réinitialise les points de vie
-            }
-            console.log("test2");
-        }
-        //console.log(this.checkCollisionWithCircle(triangle, circle));
-        return false; // Supprime le triangle en cas de collision
-    }
-    else return true; // Garde le triangle s'il n'y a pas de collision
-}
+// const collisionsGestion = (triangle : Triangle, circle : Circle) : boolean => {
+//     if (coll.checkCollisionWithCircle(triangle, circle)) {
+//         if (triangle.color === circle.color) {
+//             circle.hp += 1; // Augmente les points de vie du cercle
+//             console.log("test");
+//         }
+//         else {
+//             circle.hp -= 1; // Réduit les points de vie du cercle
+//             if (circle.hp <= 0) {
+//                 circle.color = triangle.color; // Change la couleur du cercle à celle du triangle
+//                 circle.hp = 10; // Réinitialise les points de vie
+//             }
+//             console.log("test2");
+//         }
+//         //console.log(this.checkCollisionWithCircle(triangle, circle));
+//         return false; // Supprime le triangle en cas de collision
+//     }
+//     else return true; // Garde le triangle s'il n'y a pas de collision
+// }
 
 const moveTriangles = (model : OurModel ) : OurModel => {
     const newtriangles = model.triangles.filter(triangle => {
@@ -179,20 +182,23 @@ const moveTriangles = (model : OurModel ) : OurModel => {
             // Vérifie la collision avec les cercles
             model.circles.forEach(circle => {
                 if (coll.checkCollisionWithCircle(triangle, circle)) {
-                    if (triangle.color === circle.color) {
-                        circle.hp += 1; // Augmente les points de vie du cercle
-                    }
-                    else {
+                    if (triangle.color !== circle.color) {
                         circle.hp -= 1; // Réduit les points de vie du cercle
                         if (circle.hp <= 0) {
                             circle.color = triangle.color; // Change la couleur du cercle à celle du triangle
                             circle.hp = 10; // Réinitialise les points de vie
                         }
+                        keepTriangle = false; // Supprime le triangle en cas de collision
                     }
+                    
+                }
+                //keepTriangle = collisionsGestion(triangle, circle);
+                //console.log(keepTriangle);
+            });
+            model.triangles.forEach(triangle2 => {
+                if (triangle !== triangle2 && triangle.color !== triangle2.color && coll.checkCollisionWithTriangle(triangle, triangle2)) {
                     keepTriangle = false; // Supprime le triangle en cas de collision
                 }
-                //keepTriangle = this.collisionsGestion(triangle, circle);
-                console.log(keepTriangle);
             });
         }
         return keepTriangle; // Garde le triangle s'il n'y a pas de collision
@@ -234,7 +240,6 @@ export const setDestination = (model : OurModel, destination : Point) : OurModel
         return triangle;
     });
     
-    //return moveTriangles(model); // Commence le mouvement
     return {
         triangles: newtriangles, 
         circles: model.circles, 
@@ -249,6 +254,15 @@ const onleftclick = (model : OurModel, destination : Point) : OurModel => {
 }
 
 const onrightclick = (model : OurModel, start : Point) : OurModel => {
+    return { 
+        triangles: model.triangles, 
+        circles: model.circles, 
+        startSelec: null, 
+        endSelec: null, 
+        events: model.events
+    };
+}
+const onmousedown = (model : OurModel, start : Point) : OurModel => {
     return { 
         triangles: model.triangles, 
         circles: model.circles, 
@@ -268,18 +282,24 @@ const onmousemove = (model : OurModel, end : Point) : OurModel => {
     };
 }
 
-const onmouseup = (model : OurModel) : OurModel => {
-    if (!model.startSelec || !model.endSelec) return model; // Aucune sélection en cours // Impossible normalement
-    return selectTrianglesInArea(model.startSelec, model.endSelec, model);
+const onmouseup = (model : OurModel) : OurModel => { // Aucune sélection en cours // Impossible normalement
+    return selectTrianglesInArea(model);
 }
 
 const executeEvents = (model : OurModel) : OurModel => {
     const newmodel = model.events.reduce((acc, event) => {
         switch (event.type) {
             case 'click':
-                return onleftclick(acc, { x: event.offsetX, y: event.offsetY });
+                if (event.button ===  2){
+                    console.log("right click");
+                    return onrightclick(acc, { x: event.offsetX, y: event.offsetY });
+                } 
+                else {
+                    console.log("left click");
+                    return onleftclick(acc, { x: event.offsetX, y: event.offsetY });
+                }
             case 'mousedown':
-                return onrightclick(acc, { x: event.offsetX, y: event.offsetY });
+                return onmousedown(acc, { x: event.offsetX, y: event.offsetY });
             case 'mousemove':
                 return onmousemove(acc, { x: event.offsetX, y: event.offsetY });
             case 'mouseup':
@@ -307,16 +327,89 @@ export const addEvent = (model : OurModel, event : MouseEvent) : OurModel => {
     };
 }
 
+/*******************************************************************
+     *  Fonction de génération de triangles autour des cercles
+*******************************************************************/
+const generateTriangleNearCircle = (model: OurModel, circle: Circle): OurModel => {
+    const distToCircle = circle.radius+ 20; // Distance from the circle where the triangle will be generated
+    const angle = Math.random() * Math.PI * 2; // Random angle for triangle placement
+
+    const x = circle.center.x + Math.cos(angle) * distToCircle;
+    const y = circle.center.y + Math.sin(angle) * distToCircle;
+    const size = conf.TRIANGLESIZE;
+    const points = [
+        { x: x, y: y - size },
+        { x: x - size, y: y + size },
+        { x: x + size, y: y + size }
+    ];
+    const center = { x: x, y: y };
+    const color = circle.color;
+    const triangle : Triangle = {
+        points : points, 
+        size : size, 
+        center : center, 
+        color : color, 
+        selected : false, 
+        destination : null
+    };
+
+    return addTriangle(model, triangle);
+};
+
+export const generateTrianglesAroundCircles = (model: OurModel): OurModel => {
+    model.circles.forEach(circle => {
+        if (circle.color !== conf.UNHABITEDPLANETCOLOR) {; // Ignore planètes non habitées
+            model = generateTriangleNearCircle(model, circle);
+        }
+    });
+    return model;
+}
+/*******************************************************************
+     * Fonctions pour la gestion du modèle
+*******************************************************************/
 export const updateModel = (model : OurModel) : OurModel => {
     const newModel = executeEvents(model);
     return moveTriangles(newModel);
 }
 
-// Fonction de tests, génération de triangles et cercles
-const generateTriangles = (model : OurModel, number : number) : OurModel => {
+/*******************************************************************
+     * Fonctions pour creer des planètes
+*******************************************************************/
+const addSmallPlanet = (model : OurModel, point : Point, color : string) : OurModel => {
+    const radius = conf.SMALLPLANETRADIUS;
+    const center = point;
+    const colorP = color;
+    const hp = conf.SMALLPLANETLIFE;
+    const circle : Circle = { center: center, radius: radius, color: colorP, hp: hp };
+    return addCircle(model, circle);
+}
+
+
+const addMediumPlanet = (model : OurModel, point : Point, color : string) : OurModel => {
+    const radius = conf.MEDIUMPLANETRADIUS;
+    const center = point;
+    const colorP = color;
+    const hp = conf.MEDIUMPLANETLIFE;
+    const circle : Circle = { center: center, radius: radius, color: colorP, hp: hp };
+    return addCircle(model, circle);
+}
+
+const addBigPlanet = (model : OurModel, point : Point, color : string) : OurModel => {
+    const radius = conf.BIGPLANETRADIUS;
+    const center = point;
+    const colorP = color;
+    const hp = conf.BIGPLANETLIFE;
+    const circle : Circle = { center: center, radius: radius, color: colorP, hp: hp };
+    return addCircle(model, circle);
+}
+
+/*******************************************************************
+     *  Fonction de tests, génération de triangles et cercles
+*******************************************************************/
+const generateTriangles = (model : OurModel, height : number, width : number, number : number) : OurModel => {
     for (let i = 0; i < number; i++) {
-        const x = Math.random() * 800+200;
-        const y = Math.random() * 200;
+        const x = 20 + Math.random() * (width-50);
+        const y = 20 + Math.random() * (height-50);
         const size = 20;
         const points = [
             { x: x, y: y - size },
@@ -324,7 +417,7 @@ const generateTriangles = (model : OurModel, number : number) : OurModel => {
             { x: x + size, y: y + size }
         ];
         const center = { x: x, y: y };
-        const color = conf.ENEMYCOLOR1;
+        const color = conf.PLAYERCOLOR;
         const triangle : Triangle = {
             points : points, 
             size : size, 
@@ -359,10 +452,51 @@ const generateCircles = (model : OurModel) : OurModel => {
     return model;
 }
 
-export const createGameTest = () => {
+export const createGameTest = (height : number, width : number) => {
     let model = initModel();
-    model = generateTriangles(model, 2000);
-    model = generateCircles(model);
+    //model = generateTriangles(model, height, width, 1000);
+
+    model = addBigPlanet(model, { x: width-100 , y: 100 }, conf.PLAYERCOLOR);
+    model = addBigPlanet(model, { x: width-100, y: height-100 }, conf.ENEMYCOLOR1);
+    model = addBigPlanet(model, { x: 100, y: 100 }, conf.ENEMYCOLOR2);
+    model = addBigPlanet(model, { x: 100, y: height-100 }, conf.ENEMYCOLOR3);
+
+    model = addMediumPlanet(model, { x: width-250 , y: 250 }, conf.PLAYERCOLOR);
+    model = addMediumPlanet(model, { x: width-250, y: height-250 }, conf.ENEMYCOLOR1);
+    model = addMediumPlanet(model, { x: 250, y: 250 }, conf.ENEMYCOLOR2);
+    model = addMediumPlanet(model, { x: 250, y: height-250 }, conf.ENEMYCOLOR3);
+
+    model = addMediumPlanet(model, { x: width-100 , y: 300 }, conf.UNHABITEDPLANETCOLOR);
+    model = addMediumPlanet(model, { x: width-100, y: height-300 }, conf.UNHABITEDPLANETCOLOR);
+    model = addMediumPlanet(model, { x: 100, y: 300 }, conf.UNHABITEDPLANETCOLOR);
+    model = addMediumPlanet(model, { x: 100, y: height-300 }, conf.UNHABITEDPLANETCOLOR);
+
+    model = addMediumPlanet(model, { x: width-300 , y: 100 }, conf.UNHABITEDPLANETCOLOR);
+    model = addMediumPlanet(model, { x: width-300, y: height-100 }, conf.UNHABITEDPLANETCOLOR);
+    model = addMediumPlanet(model, { x: 300, y: 100 }, conf.UNHABITEDPLANETCOLOR);
+    model = addMediumPlanet(model, { x: 300, y: height-100 }, conf.UNHABITEDPLANETCOLOR);
+
+    model = addSmallPlanet(model, { x: width-500 , y: 100 }, conf.UNHABITEDPLANETCOLOR);
+    model = addSmallPlanet(model, { x: width-500, y: height-100 }, conf.UNHABITEDPLANETCOLOR);
+    model = addSmallPlanet(model, { x: 500, y: 100 }, conf.UNHABITEDPLANETCOLOR);
+    model = addSmallPlanet(model, { x: 500, y: height-100 }, conf.UNHABITEDPLANETCOLOR);
+
+    model = addSmallPlanet(model, { x: width-500 , y: 500 }, conf.UNHABITEDPLANETCOLOR);
+    model = addSmallPlanet(model, { x: width-500, y: height-500 }, conf.UNHABITEDPLANETCOLOR);
+    model = addSmallPlanet(model, { x: 500, y: 500 }, conf.UNHABITEDPLANETCOLOR);
+    model = addSmallPlanet(model, { x: 500, y: height-500 }, conf.UNHABITEDPLANETCOLOR);
+
+
+    const midx = width/2;
+    const midy = height/2;
+    model = addSmallPlanet(model, { x: midx-100, y: 500 }, conf.UNHABITEDPLANETCOLOR);
+    model = addSmallPlanet(model, { x: midx+100, y: 500 }, conf.UNHABITEDPLANETCOLOR);
+    model = addSmallPlanet(model, { x: midx+100, y: height-500 }, conf.UNHABITEDPLANETCOLOR);
+    model = addSmallPlanet(model, { x: midx-100, y: height-500 }, conf.UNHABITEDPLANETCOLOR);
+    
+
+    model = addBigPlanet(model, { x: midx, y: midy }, conf.UNHABITEDPLANETCOLOR);
+    
     return model;
 }
 

@@ -11,7 +11,7 @@ type Size = {
 const App = () => {
   const [size, setSize] = useState<Size | null>(null);
   const container = useRef<HTMLDivElement>(null); // Specify the correct element type for ref
-  const Padding = 30;
+  const Padding = 10;
 
   useEffect(() => {
     const timer = setTimeout(() => {
