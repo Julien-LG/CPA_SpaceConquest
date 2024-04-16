@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import Loader from './components/loader';
-import StartGame from './components/v2/controller'; // Assuming StartGame is a React component
+import StartGame from './components/Canvas/controller'; // Assuming StartGame is a React component
 import './App.css';
 
 type Size = {
