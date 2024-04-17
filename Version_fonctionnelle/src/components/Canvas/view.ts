@@ -1,4 +1,4 @@
-import {Triangle, Circle, OurModel} from './model';
+import {Triangle, Circle, OurModel} from './Model/model';
 
 export type ViewRender = {
     canvas: HTMLCanvasElement,

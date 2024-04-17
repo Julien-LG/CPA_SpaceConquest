@@ -1,7 +1,8 @@
 import { useRef, useEffect } from 'react'
 
-import { OurModel, updateModel, addEvent, generateTrianglesAroundCircles, createGameTest, winGame, loseGame } from "./model";
+import { OurModel, updateModel, addEvent, generateTrianglesAroundCircles, createGameTest, winGame, loseGame } from "./Model/model";
 import { initView, ViewRender, drawAll } from "./view";
+import { directTrianglesToNearestPlanet, directTrianglesToWeakestClosestEnemy } from './Model/ai';
 
 
 export type OurController = {
@@ -27,16 +28,31 @@ export const animate = (controller: OurController) => {
         if (!winGame(model) && !loseGame(model)) {
             requestAnimationFrame(update);
         }
+        else {
+            if (winGame(model)) {
+                alert('You win!');
+            }
+            else {
+                alert('You lose!');
+            }
+        }
     };
 
     update();
 
-    // Set up a timer to generate triangles every 2 seconds
+    // Génération des triangles toutes les 2 secondes //A MODIFIER POUR CHAQUE TAILLE DE PLANETE
     const intervalId = setInterval(() => {
         controller.model = generateTrianglesAroundCircles(controller.model);
     }, 2000);
 
-    // Optionally clear this interval when the game ends or on component unmount
+    // Actions des IA toutes les 4 secondes
+    const intervalId2 = setInterval(() => {
+        controller.model = directTrianglesToNearestPlanet(controller.model, 'red');  // IA pour enemies rouges
+        controller.model = directTrianglesToWeakestClosestEnemy(controller.model, 'green');  // IA pour enemies verts
+        controller.model = directTrianglesToWeakestClosestEnemy(controller.model, 'orange');  // IA pour enemies oranges
+    }, 4000);
+
+    // Supprime l'intervalle lorsqu'on gagne ou perd
     return () => clearInterval(intervalId);
 }
 

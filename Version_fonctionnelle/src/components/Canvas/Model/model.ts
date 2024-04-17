@@ -1,5 +1,5 @@
 import * as coll from "./collision";
-import * as conf from "./conf";
+import * as conf from "../conf";
 
 
 
@@ -16,19 +16,22 @@ export type Circle = {
     center: Point,
     radius: number, 
     color: string, 
-    hp : number
+    hp : number,
+    maxHP : number
 };
 export type OurModel = { 
     triangles: Triangle[], 
     circles: Circle[]
     startSelec: Point | null,
     endSelec: Point | null,
+    canvasheight : number,
+    canvaswidth : number,
     events : MouseEvent[]
 };
 
 
-export const initModel = (): OurModel => {
-    return { triangles: [], circles: [], startSelec: null, endSelec: null, events: [] };
+export const initModel = (height : number, width : number): OurModel => {
+    return { triangles: [], circles: [], canvasheight : height, canvaswidth: width, startSelec: null, endSelec: null, events: [] };
 }
 
 // Fonctions pour creer et ajouter des triangles et cercles dans le modele
@@ -36,6 +39,8 @@ const addTriangle = (model: OurModel, triangle: Triangle): OurModel => {
     return {
         triangles: model.triangles.concat(triangle), 
         circles: model.circles, 
+        canvasheight : model.canvasheight,
+        canvaswidth : model.canvaswidth, 
         startSelec: model.startSelec, 
         endSelec: model.endSelec,
         events: model.events
@@ -46,6 +51,8 @@ const addCircle = (model: OurModel, circle: Circle): OurModel => {
     return { 
         triangles: model.triangles, 
         circles: model.circles.concat(circle), 
+        canvasheight : model.canvasheight,
+        canvaswidth : model.canvaswidth,
         startSelec: model.startSelec, 
         endSelec: model.endSelec,
         events: model.events
@@ -88,6 +95,8 @@ export const selectTrianglesInArea = (model : OurModel) => {
     return { 
         triangles: newtriangles, 
         circles: model.circles, 
+        canvasheight : model.canvasheight,
+        canvaswidth : model.canvaswidth,
         startSelec: null, 
         endSelec: null, 
         events: model.events
@@ -154,64 +163,109 @@ const reorientTriangle = (triangle : Triangle) : Triangle=> {
 //     else return true; // Garde le triangle s'il n'y a pas de collision
 // }
 
-const moveTriangles = (model : OurModel ) : OurModel => {
-    const newtriangles = model.triangles.filter(triangle => {
-        let keepTriangle = true;
-        if (triangle.destination){ // Ignore les triangles non sélectionnés ou immobiles
+const moveTriangles = (model: OurModel): OurModel => {
+    const trianglesToRemove = new Set<Triangle>();  //Se contennat les triangles a supprimer
+    const canvasHeight = model.canvasheight;
+    const canvasWidth = model.canvaswidth;
 
-            // Calcul de la direction et de la distance vers la destination
+    model.triangles.forEach((triangle) => {
+        let hasCollided = false; // marqueur de collision
+
+        if (triangle.destination) {  // Ignore les triangles sans destination(immobiles)
             const dx = triangle.destination.x - triangle.center.x;
             const dy = triangle.destination.y - triangle.center.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
             const angle = Math.atan2(dy, dx);
 
             if (distance < 1) {
-                triangle.destination = null; // Réinitialise la destination
-                return keepTriangle; // Le triangle reste présent
+                triangle.destination = null;  // Reset destination quand arriver
+            } else {
+                const speed = 1;
+                triangle.points.forEach(point => {
+                    point.x += Math.cos(angle) * speed;
+                    point.y += Math.sin(angle) * speed;
+                });
+                triangle.center.x += Math.cos(angle) * speed;
+                triangle.center.y += Math.sin(angle) * speed;
             }
 
-            const speed = 1; // Vitesse de déplacement
-            triangle.points.forEach(point => {
-                point.x += Math.cos(angle) * speed;
-                point.y += Math.sin(angle) * speed;
-            });
-            triangle.center.x += Math.cos(angle) * speed;
-            triangle.center.y += Math.sin(angle) * speed;
-            
-
-            // Vérifie la collision avec les cercles
+            // Check collisions avec les cercles
             model.circles.forEach(circle => {
-                if (coll.checkCollisionWithCircle(triangle, circle)) {
-                    if (triangle.color !== circle.color) {
-                        circle.hp -= 1; // Réduit les points de vie du cercle
-                        if (circle.hp <= 0) {
-                            circle.color = triangle.color; // Change la couleur du cercle à celle du triangle
-                            circle.hp = 10; // Réinitialise les points de vie
-                        }
-                        keepTriangle = false; // Supprime le triangle en cas de collision
+                if (!hasCollided && coll.checkCollisionWithCircle(triangle, circle) && triangle.color !== circle.color) {
+                    circle.hp -= 1; 
+                    if (circle.hp <= 0) {
+                        circle.color = triangle.color;  
+                        circle.hp = circle.maxHP;  // Reset hp
                     }
-                    
-                }
-                //keepTriangle = collisionsGestion(triangle, circle);
-                //console.log(keepTriangle);
-            });
-            model.triangles.forEach(triangle2 => {
-                if (triangle !== triangle2 && triangle.color !== triangle2.color && coll.checkCollisionWithTriangle(triangle, triangle2)) {
-                    keepTriangle = false; // Supprime le triangle en cas de collision
+                    trianglesToRemove.add(triangle);  // Marquage du triangle pour suppression
+                    hasCollided = true;  // Set  marqueur de collision à true
                 }
             });
+
+            // Check collisions entre triangles si pas encore de collision
+            if (!hasCollided) {
+                for (let j = 0; j < model.triangles.length; j++) {
+                    const triangle2 = model.triangles[j];
+                    if (triangle !== triangle2 && triangle.color !== triangle2.color && coll.checkCollisionWithTriangle(triangle, triangle2)) {
+                        trianglesToRemove.add(triangle);  // Mark this triangle for removal
+                        trianglesToRemove.add(triangle2);  // Mark the other triangle for removal
+                        hasCollided = true;  // Set the collision flag
+                        break;  // Stop checking once a collision is found
+                    }
+                }
+            }
+            // check collisions avec les bords si pas encore de collision
+            if (!hasCollided) {
+                if (coll.checkCollisionWithBorders(triangle, canvasWidth, canvasHeight)) {
+                    model.triangles.forEach(triangle => {
+                        triangle.destination = null;  // Mark all triangles for removal
+                        console.log("collision bord");
+                    });
+                }
+            }
         }
-        return keepTriangle; // Garde le triangle s'il n'y a pas de collision
     });
-    return { 
+
+    // Filter out triangles marked for removal
+    const newTriangles = model.triangles.filter(triangle => !trianglesToRemove.has(triangle));
+
+    return {
+        triangles: newTriangles,
+        circles: model.circles,
+        canvasheight : model.canvasheight,
+        canvaswidth : model.canvaswidth,
+        startSelec: model.startSelec,
+        endSelec: model.endSelec,
+        events: model.events
+    };
+};
+
+export const setDestinationEnemy = (model : OurModel, destination : Point, color : string) : OurModel => {
+    // Définit la destination et initie le mouvement pour les triangles sélectionnés
+    const newtriangles = model.triangles.map(triangle => {
+        if (triangle.color === color) {
+            return reorientTriangle(
+                {points : triangle.points, 
+                    size : triangle.size, 
+                    center : triangle.center, 
+                    color : triangle.color, 
+                    selected : triangle.selected, 
+                    destination : destination
+                });
+        }
+        return triangle;
+    });
+    
+    return {
         triangles: newtriangles, 
         circles: model.circles, 
+        canvasheight : model.canvasheight,
+        canvaswidth : model.canvaswidth,
         startSelec: model.startSelec, 
         endSelec: model.endSelec, 
-        events: model.events 
+        events: model.events
     };
 }
-
 export const winGame = (model : OurModel) : boolean => {
     const colors = model.circles.map(circle => circle.color);
     return colors.every(color => color === conf.PLAYERCOLOR);
@@ -224,7 +278,7 @@ export const loseGame = (model : OurModel) : boolean => {
 /*******************************************************************
      * Fonctions pour les événements
 *******************************************************************/
-export const setDestination = (model : OurModel, destination : Point) : OurModel => {
+export const setDestinationSelected = (model : OurModel, destination : Point) : OurModel => {
     // Définit la destination et initie le mouvement pour les triangles sélectionnés
     const newtriangles = model.triangles.map(triangle => {
         if (triangle.selected) {
@@ -243,6 +297,8 @@ export const setDestination = (model : OurModel, destination : Point) : OurModel
     return {
         triangles: newtriangles, 
         circles: model.circles, 
+        canvasheight : model.canvasheight,
+        canvaswidth : model.canvaswidth,
         startSelec: model.startSelec, 
         endSelec: model.endSelec, 
         events: model.events
@@ -250,13 +306,15 @@ export const setDestination = (model : OurModel, destination : Point) : OurModel
 }
 
 const onleftclick = (model : OurModel, destination : Point) : OurModel => {
-    return setDestination(model, destination);
+    return setDestinationSelected(model, destination);
 }
 
 const onrightclick = (model : OurModel, start : Point) : OurModel => {
     return { 
         triangles: model.triangles, 
         circles: model.circles, 
+        canvasheight : model.canvasheight,
+        canvaswidth : model.canvaswidth,
         startSelec: null, 
         endSelec: null, 
         events: model.events
@@ -266,6 +324,8 @@ const onmousedown = (model : OurModel, start : Point) : OurModel => {
     return { 
         triangles: model.triangles, 
         circles: model.circles, 
+        canvasheight : model.canvasheight,
+        canvaswidth : model.canvaswidth,
         startSelec: start, 
         endSelec: null, 
         events: model.events
@@ -276,6 +336,8 @@ const onmousemove = (model : OurModel, end : Point) : OurModel => {
     return { 
         triangles: model.triangles, 
         circles: model.circles, 
+        canvasheight : model.canvasheight,
+        canvaswidth : model.canvaswidth,
         startSelec: model.startSelec, 
         endSelec: end, 
         events: model.events
@@ -311,6 +373,8 @@ const executeEvents = (model : OurModel) : OurModel => {
     return { 
         triangles: newmodel.triangles, 
         circles: newmodel.circles, 
+        canvasheight : model.canvasheight,
+        canvaswidth : model.canvaswidth,
         startSelec: newmodel.startSelec, 
         endSelec: newmodel.endSelec, 
         events: []
@@ -321,6 +385,8 @@ export const addEvent = (model : OurModel, event : MouseEvent) : OurModel => {
     return { 
         triangles: model.triangles, 
         circles: model.circles, 
+        canvasheight : model.canvasheight,
+        canvaswidth : model.canvaswidth,
         startSelec: model.startSelec, 
         endSelec: model.endSelec, 
         events: model.events.concat(event)
@@ -380,7 +446,7 @@ const addSmallPlanet = (model : OurModel, point : Point, color : string) : OurMo
     const center = point;
     const colorP = color;
     const hp = conf.SMALLPLANETLIFE;
-    const circle : Circle = { center: center, radius: radius, color: colorP, hp: hp };
+    const circle : Circle = { center: center, radius: radius, color: colorP, hp: hp, maxHP: hp};
     return addCircle(model, circle);
 }
 
@@ -390,7 +456,7 @@ const addMediumPlanet = (model : OurModel, point : Point, color : string) : OurM
     const center = point;
     const colorP = color;
     const hp = conf.MEDIUMPLANETLIFE;
-    const circle : Circle = { center: center, radius: radius, color: colorP, hp: hp };
+    const circle : Circle = { center: center, radius: radius, color: colorP, hp: hp, maxHP: hp};
     return addCircle(model, circle);
 }
 
@@ -399,7 +465,7 @@ const addBigPlanet = (model : OurModel, point : Point, color : string) : OurMode
     const center = point;
     const colorP = color;
     const hp = conf.BIGPLANETLIFE;
-    const circle : Circle = { center: center, radius: radius, color: colorP, hp: hp };
+    const circle : Circle = { center: center, radius: radius, color: colorP, hp: hp, maxHP: hp};
     return addCircle(model, circle);
 }
 
@@ -437,7 +503,7 @@ const generateCircles = (model : OurModel) : OurModel => {
     const center = { x: x, y: y };
     const color = conf.ENEMYCOLOR1;
     const hp = conf.BIGPLANETLIFE;
-    const circle : Circle = { center: center, radius: radius, color: color, hp: hp };
+    const circle : Circle = { center: center, radius: radius, color: color, hp: hp, maxHP: hp};
     model = addCircle(model, circle);
     
     const x2 = 300;
@@ -446,14 +512,14 @@ const generateCircles = (model : OurModel) : OurModel => {
     const center2 = { x: x2, y: y2 };
     const color2 = conf.PLAYERCOLOR;
     const hp2 = conf.BIGPLANETLIFE;
-    const circle2 : Circle = { center: center2, radius: radius2, color: color2, hp: hp2 };
+    const circle2 : Circle = { center: center2, radius: radius2, color: color2, hp: hp2, maxHP: hp2};
     model = addCircle(model, circle2);
 
     return model;
 }
 
 export const createGameTest = (height : number, width : number) => {
-    let model = initModel();
+    let model = initModel(height, width);
     //model = generateTriangles(model, height, width, 1000);
 
     model = addBigPlanet(model, { x: width-100 , y: 100 }, conf.PLAYERCOLOR);
