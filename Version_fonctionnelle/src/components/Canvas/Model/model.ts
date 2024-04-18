@@ -1,5 +1,5 @@
 import * as coll from "./collision";
-import * as conf from "../conf";
+import * as conf from "../config";
 
 
 
@@ -309,14 +309,49 @@ const onleftclick = (model : OurModel, destination : Point) : OurModel => {
     return setDestinationSelected(model, destination);
 }
 
-const onrightclick = (model : OurModel, start : Point) : OurModel => {
+// Double click gauche pour selectionner tous les triangles de la couleur du joueur
+const ondoubleclick = (model : OurModel) : OurModel => {
+    const newtriangles = model.triangles.map(triangle => {
+
+        return triangle.color === conf.PLAYERCOLOR ? {
+            points : triangle.points, 
+            size : triangle.size,
+            center : triangle.center,
+            color : triangle.color,
+            selected : true,
+            destination : triangle.destination
+        } : triangle;
+    });
     return { 
-        triangles: model.triangles, 
+        triangles: newtriangles, 
         circles: model.circles, 
         canvasheight : model.canvasheight,
         canvaswidth : model.canvaswidth,
         startSelec: null, 
         endSelec: null, 
+        events: model.events
+    };
+}
+
+
+const onrightclick = (model : OurModel) : OurModel => {
+    const newtriangles = model.triangles.map(triangle => {
+        return triangle.selected ? {
+            points : triangle.points, 
+            size : triangle.size,
+            center : triangle.center,
+            color : triangle.color,
+            selected : false,
+            destination : triangle.destination
+        } : triangle;
+    });
+    return { 
+        triangles: newtriangles, 
+        circles: model.circles, 
+        canvasheight : model.canvasheight,
+        canvaswidth : model.canvaswidth,
+        startSelec: model.startSelec, 
+        endSelec: model.endSelec, 
         events: model.events
     };
 }
@@ -344,7 +379,7 @@ const onmousemove = (model : OurModel, end : Point) : OurModel => {
     };
 }
 
-const onmouseup = (model : OurModel) : OurModel => { // Aucune sélection en cours // Impossible normalement
+const onmouseup = (model : OurModel) : OurModel => {
     return selectTrianglesInArea(model);
 }
 
@@ -352,14 +387,16 @@ const executeEvents = (model : OurModel) : OurModel => {
     const newmodel = model.events.reduce((acc, event) => {
         switch (event.type) {
             case 'click':
-                if (event.button ===  2){
-                    console.log("right click");
-                    return onrightclick(acc, { x: event.offsetX, y: event.offsetY });
-                } 
-                else {
+                if(event.detail === 2){
+                    console.log("double left click")
+                    return ondoubleclick(acc);
+                }else {
                     console.log("left click");
                     return onleftclick(acc, { x: event.offsetX, y: event.offsetY });
                 }
+            case 'contextmenu':
+                console.log("right click");
+                return onrightclick(acc);
             case 'mousedown':
                 return onmousedown(acc, { x: event.offsetX, y: event.offsetY });
             case 'mousemove':
@@ -394,7 +431,7 @@ export const addEvent = (model : OurModel, event : MouseEvent) : OurModel => {
 }
 
 /*******************************************************************
-     *  Fonction de génération de triangles autour des cercles
+     *  Fonction de génération de triangles(troupes) autour des cercles
 *******************************************************************/
 const generateTriangleNearCircle = (model: OurModel, circle: Circle): OurModel => {
     const distToCircle = circle.radius+ 20; // Distance from the circle where the triangle will be generated
@@ -422,16 +459,53 @@ const generateTriangleNearCircle = (model: OurModel, circle: Circle): OurModel =
     return addTriangle(model, triangle);
 };
 
-export const generateTrianglesAroundCircles = (model: OurModel): OurModel => {
+export const generateTrianglesAroundPlanetofSetSize = (model: OurModel, size : number): OurModel => {
     model.circles.forEach(circle => {
-        if (circle.color !== conf.UNHABITEDPLANETCOLOR) {; // Ignore planètes non habitées
+        if (circle.color !== conf.UNHABITEDPLANETCOLOR && circle.radius === size) {; // Ignore planètes non habitées
             model = generateTriangleNearCircle(model, circle);
         }
     });
     return model;
 }
+
 /*******************************************************************
-     * Fonctions pour la gestion du modèle
+     * Fonctions pour la régenération des pv des planètes
+*******************************************************************/
+export const regenerateHP = (model : OurModel) : OurModel => {
+    const newCircles = model.circles.map(circle => {
+        if (circle.color !== conf.UNHABITEDPLANETCOLOR) {
+            switch (circle.radius) {
+                case conf.SMALLPLANETRADIUS:
+                    circle.hp += 0.5;
+                    break;
+                case conf.MEDIUMPLANETRADIUS:
+                    circle.hp += 1;
+                    break;
+                case conf.BIGPLANETRADIUS:
+                    circle.hp += 2;
+                    break;
+                default:
+                    break;
+            }
+            if (circle.hp > circle.maxHP) {
+                circle.hp = circle.maxHP;
+            }
+        }
+        return circle;
+    });
+    return { 
+        triangles: model.triangles, 
+        circles: newCircles, 
+        canvasheight : model.canvasheight,
+        canvaswidth : model.canvaswidth,
+        startSelec: model.startSelec, 
+        endSelec: model.endSelec, 
+        events: model.events
+    };
+}
+
+/*******************************************************************
+     * Fonction pour la gestion du modèle
 *******************************************************************/
 export const updateModel = (model : OurModel) : OurModel => {
     const newModel = executeEvents(model);

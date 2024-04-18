@@ -1,5 +1,5 @@
 import { OurModel, Circle, Point, setDestinationEnemy } from './model';
-import * as conf from '../conf';
+import * as conf from '../config';
 
 // Calcul la distance entre deux points, on ne prend pas la racine carrée pour éviter de faire une opération coûteuse (les comparaison de distance restent valides)
 const calculateDistance = (x1: number, y1: number, x2: number, y2: number): number => {

@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react'
 
-import { OurModel, updateModel, addEvent, generateTrianglesAroundCircles, createGameTest, winGame, loseGame } from "./Model/model";
+import * as conf from './config'
+import { OurModel, updateModel, addEvent, generateTrianglesAroundPlanetofSetSize, regenerateHP, createGameTest, winGame, loseGame } from "./Model/model";
 import { initView, ViewRender, drawAll } from "./view";
 import { directTrianglesToNearestPlanet, directTrianglesToWeakestClosestEnemy } from './Model/ai';
 
@@ -40,55 +41,80 @@ export const animate = (controller: OurController) => {
 
     update();
 
-    // Génération des triangles toutes les 2 secondes //A MODIFIER POUR CHAQUE TAILLE DE PLANETE
-    const intervalId = setInterval(() => {
-        controller.model = generateTrianglesAroundCircles(controller.model);
+    // Génération des troupes pour chaque taille de planète
+    const intervalGenerateTroupsBigPlanet = setInterval(() => {
+        controller.model = generateTrianglesAroundPlanetofSetSize(controller.model, conf.BIGPLANETRADIUS);
     }, 2000);
+    const intervalGenerateTroupsMediumPlanet = setInterval(() => {
+        controller.model = generateTrianglesAroundPlanetofSetSize(controller.model, conf.MEDIUMPLANETRADIUS);
+    }, 3000);
+    const intervalGenerateTroupsSmallPlanet = setInterval(() => {
+        controller.model = generateTrianglesAroundPlanetofSetSize(controller.model, conf.SMALLPLANETRADIUS);
+    }, 4500);
+
+    //Régéneration de la santé des planètes
+    const intervalRegenerateHealth = setInterval(() => {
+        controller.model = regenerateHP(controller.model);
+    }, 5000);
 
     // Actions des IA toutes les 4 secondes
     const intervalId2 = setInterval(() => {
         controller.model = directTrianglesToNearestPlanet(controller.model, 'red');  // IA pour enemies rouges
         controller.model = directTrianglesToWeakestClosestEnemy(controller.model, 'green');  // IA pour enemies verts
         controller.model = directTrianglesToWeakestClosestEnemy(controller.model, 'orange');  // IA pour enemies oranges
-    }, 4000);
+    }, 6000);
 
     // Supprime l'intervalle lorsqu'on gagne ou perd
-    return () => clearInterval(intervalId);
+    return () => {
+        clearInterval(intervalGenerateTroupsBigPlanet);
+        clearInterval(intervalGenerateTroupsMediumPlanet);
+        clearInterval(intervalGenerateTroupsSmallPlanet);
+        clearInterval(intervalId2);
+    }
 }
 
-export const setupEventListeners= (controller : OurController) => {
+
+export const setupEventListeners = (controller: OurController) => {
     const view = controller.view;
-    // Initializes event listeners for user interaction
+    // Initialise les écouteurs d'événements pour l'interaction utilisateur
     
-    // Right-click to start selecting triangles
+    let isRightClick = false; // Indicateur pour suivre l'état du clic droit
+
+    // Clic droit pour commencer la sélection des triangles
     view.canvas.addEventListener('mousedown', e => {
-        if (e.button === 2) { // Right mouse button
-            e.preventDefault(); // Prevents the context menu from showing
+        if (e.button === 2) { // Bouton droit de la souris
+            e.preventDefault(); // Empêche l'affichage du menu contextuel
+            isRightClick = true;
             controller.model = addEvent(controller.model, e);
         }
     });
 
-    // Drag to select an area
+    // Glisser pour sélectionner une zone
     view.canvas.addEventListener('mousemove', e => {
-        if (controller.model.startSelec) {
+        if (controller.model.startSelec && isRightClick) {
             controller.model = addEvent(controller.model, e);
         }
     });
 
-    // Release right-click to finalize selection
+    // Relâcher le clic droit pour finaliser la sélection
     view.canvas.addEventListener('mouseup', e => {
-        if (e.button === 2 && controller.model.startSelec) {
+        if (e.button === 2 && controller.model.startSelec && isRightClick) {
             controller.model = addEvent(controller.model, e);
+            isRightClick = false;
         }
     });
 
-    //click
-    view.canvas.addEventListener('click', e => {
+    view.canvas.addEventListener('contextmenu', e => {
+        // Empêche l'affichage du menu contextuel par défaut
+        e.preventDefault();
         controller.model = addEvent(controller.model, e);
     });
 
-    // Prevents the context menu from showing on right-click
-    view.canvas.addEventListener('contextmenu', e => e.preventDefault());
+    // Ajoute un listener d'événements pour l'événement de clic (gauche)
+    view.canvas.addEventListener('click', e => {
+        controller.model = addEvent(controller.model, e);
+    });
+ 
     controller.view = view;
 }
 
