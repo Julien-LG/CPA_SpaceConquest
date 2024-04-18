@@ -1,4 +1,4 @@
-import {Triangle, Circle, OurModel} from './Model/model';
+import {Triangle, Circle, Rectangle, OurModel} from './Model/model';
 
 export type ViewRender = {
     canvas: HTMLCanvasElement,
@@ -53,6 +53,15 @@ const drawCircle = (ctx: CanvasRenderingContext2D, circle: Circle) => {
     ctx.stroke(); // Dessine le contour
 }
 
+const drawRectangle = (ctx: CanvasRenderingContext2D, rectangle: Rectangle) => {
+    // Dessine un rectangle sur le canvas
+    ctx.beginPath();
+    ctx.rect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+    ctx.fillStyle = rectangle.color;
+    ctx.fill();
+}
+
+
 const drawSelectionArea = (ctx: CanvasRenderingContext2D, model: OurModel) => {
     const { startSelec, endSelec } = model;
     if (startSelec && endSelec) {
@@ -70,5 +79,10 @@ export const drawAll = (view: ViewRender, model: OurModel) => {
     ctx.clearRect(0, 0, view.canvas.width, view.canvas.height);
     model.triangles.forEach(triangle => drawTriangle(ctx, triangle));
     model.circles.forEach(circle => drawCircle(ctx, circle));
+    model.rectangles.forEach(rectangle => drawRectangle(ctx, rectangle));
     drawSelectionArea(ctx, model);
+}
+
+export const clearAll = (view: ViewRender) => {
+    view.ctx.clearRect(0, 0, view.canvas.width, view.canvas.height);
 }

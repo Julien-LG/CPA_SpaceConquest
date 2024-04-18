@@ -1,8 +1,9 @@
 import { useRef, useEffect } from 'react'
 
 import * as conf from './config'
-import { OurModel, updateModel, addEvent, generateTrianglesAroundPlanetofSetSize, regenerateHP, createGameTest, winGame, loseGame } from "./Model/model";
-import { initView, ViewRender, drawAll } from "./view";
+import { addEvent } from './Model/eventFunctions';
+import { OurModel, updateModel, generateTrianglesAroundPlanetofSetSize, regenerateHP, createGameTest, winGame, loseGame } from "./Model/model";
+import { initView, ViewRender, drawAll, clearAll  } from "./view";
 import { directTrianglesToNearestPlanet, directTrianglesToWeakestClosestEnemy } from './Model/ai';
 
 
@@ -31,9 +32,11 @@ export const animate = (controller: OurController) => {
         }
         else {
             if (winGame(model)) {
+                clearAll(view);
                 alert('You win!');
             }
             else {
+                clearAll(view);
                 alert('You lose!');
             }
         }
@@ -69,6 +72,7 @@ export const animate = (controller: OurController) => {
         clearInterval(intervalGenerateTroupsBigPlanet);
         clearInterval(intervalGenerateTroupsMediumPlanet);
         clearInterval(intervalGenerateTroupsSmallPlanet);
+        clearInterval(intervalRegenerateHealth);
         clearInterval(intervalId2);
     }
 }

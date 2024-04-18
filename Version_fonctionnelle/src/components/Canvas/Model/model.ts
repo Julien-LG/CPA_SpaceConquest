@@ -1,10 +1,11 @@
 import * as coll from "./collision";
 import * as conf from "../config";
-
+import { executeEvents } from "./eventFunctions";
+import { implementPathfinding } from './pathFinding'; // Import the pathfinding function
 
 
 export type Point = { x: number, y: number };
-export type Triangle = {
+export type Triangle = { //troupe
     points : Point[],
     size : number, 
     center : Point ,
@@ -12,16 +13,25 @@ export type Triangle = {
     selected: boolean, 
     destination: Point | null
 };
-export type Circle = { 
+export type Circle = { //planete
     center: Point,
     radius: number, 
     color: string, 
     hp : number,
     maxHP : number
 };
+export type Rectangle = { //Mur (astéroïde)
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    color: string
+};
+
 export type OurModel = { 
     triangles: Triangle[], 
     circles: Circle[]
+    rectangles: Rectangle[],
     startSelec: Point | null,
     endSelec: Point | null,
     canvasheight : number,
@@ -31,7 +41,7 @@ export type OurModel = {
 
 
 export const initModel = (height : number, width : number): OurModel => {
-    return { triangles: [], circles: [], canvasheight : height, canvaswidth: width, startSelec: null, endSelec: null, events: [] };
+    return { triangles: [], circles: [], rectangles: [], canvasheight : height, canvaswidth: width, startSelec: null, endSelec: null, events: [] };
 }
 
 // Fonctions pour creer et ajouter des triangles et cercles dans le modele
@@ -39,6 +49,7 @@ const addTriangle = (model: OurModel, triangle: Triangle): OurModel => {
     return {
         triangles: model.triangles.concat(triangle), 
         circles: model.circles, 
+        rectangles: model.rectangles,
         canvasheight : model.canvasheight,
         canvaswidth : model.canvaswidth, 
         startSelec: model.startSelec, 
@@ -51,6 +62,7 @@ const addCircle = (model: OurModel, circle: Circle): OurModel => {
     return { 
         triangles: model.triangles, 
         circles: model.circles.concat(circle), 
+        rectangles: model.rectangles,
         canvasheight : model.canvasheight,
         canvaswidth : model.canvaswidth,
         startSelec: model.startSelec, 
@@ -59,7 +71,18 @@ const addCircle = (model: OurModel, circle: Circle): OurModel => {
     };
 }
 
-
+const addRectangle = (model: OurModel, rectangle: Rectangle): OurModel => {
+    return { 
+        triangles: model.triangles, 
+        circles: model.circles, 
+        rectangles: model.rectangles.concat(rectangle),
+        canvasheight : model.canvasheight,
+        canvaswidth : model.canvaswidth,
+        startSelec: model.startSelec, 
+        endSelec: model.endSelec,
+        events: model.events
+    };
+}
 
 /*******************************************************************
      * Fonctions de séléction et déplacement des triangles
@@ -95,6 +118,7 @@ export const selectTrianglesInArea = (model : OurModel) => {
     return { 
         triangles: newtriangles, 
         circles: model.circles, 
+        rectangles: model.rectangles,
         canvasheight : model.canvasheight,
         canvaswidth : model.canvaswidth,
         startSelec: null, 
@@ -104,7 +128,7 @@ export const selectTrianglesInArea = (model : OurModel) => {
 }
 
 // Réoriente le triangle pour qu'il pointe vers la destination
-const reorientTriangle = (triangle : Triangle) : Triangle=> {
+export const reorientTriangle = (triangle : Triangle) : Triangle=> {
     const center = triangle.center; // Utilisez le centre précalculé pour la rotation
     const destination = triangle.destination;
 
@@ -214,6 +238,27 @@ const moveTriangles = (model: OurModel): OurModel => {
                     }
                 }
             }
+            // check collisions avec les murs si pas encore de collision
+            if (!hasCollided) {
+                model.rectangles.forEach(rectangle => {
+                    if (coll.checkCollisionWithRectangle(triangle, rectangle)) {
+                        // Calculate the normal vector of the rectangle
+                        const normal = coll.calculateRectangleNormal(rectangle, triangle);
+                        // Calculate the dot product of the velocity vector and the normal vector
+                        const dotProduct = dx * normal.x + dy * normal.y;
+                        // Reflect the velocity vector using the normal vector
+                        const newDx = dx - 2 * dotProduct * normal.x;
+                        const newDy = dy - 2 * dotProduct * normal.y;
+                        // Update the destination of the triangle
+                        triangle.destination = {
+                            x: triangle.center.x + newDx,
+                            y: triangle.center.y + newDy
+                        };
+                        hasCollided = true;
+                        hasCollided = true;  // Set the collision flag
+                    }
+                });
+            }
             // check collisions avec les bords si pas encore de collision
             if (!hasCollided) {
                 if (coll.checkCollisionWithBorders(triangle, canvasWidth, canvasHeight)) {
@@ -232,6 +277,7 @@ const moveTriangles = (model: OurModel): OurModel => {
     return {
         triangles: newTriangles,
         circles: model.circles,
+        rectangles: model.rectangles,
         canvasheight : model.canvasheight,
         canvaswidth : model.canvaswidth,
         startSelec: model.startSelec,
@@ -259,6 +305,7 @@ export const setDestinationEnemy = (model : OurModel, destination : Point, color
     return {
         triangles: newtriangles, 
         circles: model.circles, 
+        rectangles: model.rectangles,
         canvasheight : model.canvasheight,
         canvaswidth : model.canvaswidth,
         startSelec: model.startSelec, 
@@ -275,160 +322,6 @@ export const loseGame = (model : OurModel) : boolean => {
     return colors.every(color => color !== conf.PLAYERCOLOR);
 }
 
-/*******************************************************************
-     * Fonctions pour les événements
-*******************************************************************/
-export const setDestinationSelected = (model : OurModel, destination : Point) : OurModel => {
-    // Définit la destination et initie le mouvement pour les triangles sélectionnés
-    const newtriangles = model.triangles.map(triangle => {
-        if (triangle.selected) {
-            return reorientTriangle(
-                {points : triangle.points, 
-                    size : triangle.size, 
-                    center : triangle.center, 
-                    color : triangle.color, 
-                    selected : triangle.selected, 
-                    destination : destination
-                });
-        }
-        return triangle;
-    });
-    
-    return {
-        triangles: newtriangles, 
-        circles: model.circles, 
-        canvasheight : model.canvasheight,
-        canvaswidth : model.canvaswidth,
-        startSelec: model.startSelec, 
-        endSelec: model.endSelec, 
-        events: model.events
-    };
-}
-
-const onleftclick = (model : OurModel, destination : Point) : OurModel => {
-    return setDestinationSelected(model, destination);
-}
-
-// Double click gauche pour selectionner tous les triangles de la couleur du joueur
-const ondoubleclick = (model : OurModel) : OurModel => {
-    const newtriangles = model.triangles.map(triangle => {
-
-        return triangle.color === conf.PLAYERCOLOR ? {
-            points : triangle.points, 
-            size : triangle.size,
-            center : triangle.center,
-            color : triangle.color,
-            selected : true,
-            destination : triangle.destination
-        } : triangle;
-    });
-    return { 
-        triangles: newtriangles, 
-        circles: model.circles, 
-        canvasheight : model.canvasheight,
-        canvaswidth : model.canvaswidth,
-        startSelec: null, 
-        endSelec: null, 
-        events: model.events
-    };
-}
-
-
-const onrightclick = (model : OurModel) : OurModel => {
-    const newtriangles = model.triangles.map(triangle => {
-        return triangle.selected ? {
-            points : triangle.points, 
-            size : triangle.size,
-            center : triangle.center,
-            color : triangle.color,
-            selected : false,
-            destination : triangle.destination
-        } : triangle;
-    });
-    return { 
-        triangles: newtriangles, 
-        circles: model.circles, 
-        canvasheight : model.canvasheight,
-        canvaswidth : model.canvaswidth,
-        startSelec: model.startSelec, 
-        endSelec: model.endSelec, 
-        events: model.events
-    };
-}
-const onmousedown = (model : OurModel, start : Point) : OurModel => {
-    return { 
-        triangles: model.triangles, 
-        circles: model.circles, 
-        canvasheight : model.canvasheight,
-        canvaswidth : model.canvaswidth,
-        startSelec: start, 
-        endSelec: null, 
-        events: model.events
-    };
-}
-
-const onmousemove = (model : OurModel, end : Point) : OurModel => {
-    return { 
-        triangles: model.triangles, 
-        circles: model.circles, 
-        canvasheight : model.canvasheight,
-        canvaswidth : model.canvaswidth,
-        startSelec: model.startSelec, 
-        endSelec: end, 
-        events: model.events
-    };
-}
-
-const onmouseup = (model : OurModel) : OurModel => {
-    return selectTrianglesInArea(model);
-}
-
-const executeEvents = (model : OurModel) : OurModel => {
-    const newmodel = model.events.reduce((acc, event) => {
-        switch (event.type) {
-            case 'click':
-                if(event.detail === 2){
-                    console.log("double left click")
-                    return ondoubleclick(acc);
-                }else {
-                    console.log("left click");
-                    return onleftclick(acc, { x: event.offsetX, y: event.offsetY });
-                }
-            case 'contextmenu':
-                console.log("right click");
-                return onrightclick(acc);
-            case 'mousedown':
-                return onmousedown(acc, { x: event.offsetX, y: event.offsetY });
-            case 'mousemove':
-                return onmousemove(acc, { x: event.offsetX, y: event.offsetY });
-            case 'mouseup':
-                return onmouseup(acc);
-            default:
-                return acc;
-        }
-    }, model);
-    return { 
-        triangles: newmodel.triangles, 
-        circles: newmodel.circles, 
-        canvasheight : model.canvasheight,
-        canvaswidth : model.canvaswidth,
-        startSelec: newmodel.startSelec, 
-        endSelec: newmodel.endSelec, 
-        events: []
-    };
-}
-
-export const addEvent = (model : OurModel, event : MouseEvent) : OurModel => {
-    return { 
-        triangles: model.triangles, 
-        circles: model.circles, 
-        canvasheight : model.canvasheight,
-        canvaswidth : model.canvaswidth,
-        startSelec: model.startSelec, 
-        endSelec: model.endSelec, 
-        events: model.events.concat(event)
-    };
-}
 
 /*******************************************************************
      *  Fonction de génération de triangles(troupes) autour des cercles
@@ -496,6 +389,7 @@ export const regenerateHP = (model : OurModel) : OurModel => {
     return { 
         triangles: model.triangles, 
         circles: newCircles, 
+        rectangles: model.rectangles,
         canvasheight : model.canvasheight,
         canvaswidth : model.canvaswidth,
         startSelec: model.startSelec, 
@@ -524,7 +418,6 @@ const addSmallPlanet = (model : OurModel, point : Point, color : string) : OurMo
     return addCircle(model, circle);
 }
 
-
 const addMediumPlanet = (model : OurModel, point : Point, color : string) : OurModel => {
     const radius = conf.MEDIUMPLANETRADIUS;
     const center = point;
@@ -542,6 +435,7 @@ const addBigPlanet = (model : OurModel, point : Point, color : string) : OurMode
     const circle : Circle = { center: center, radius: radius, color: colorP, hp: hp, maxHP: hp};
     return addCircle(model, circle);
 }
+
 
 /*******************************************************************
      *  Fonction de tests, génération de triangles et cercles
@@ -636,6 +530,11 @@ export const createGameTest = (height : number, width : number) => {
     
 
     model = addBigPlanet(model, { x: midx, y: midy }, conf.UNHABITEDPLANETCOLOR);
+
+    model = addRectangle(model, { x: midx-25, y: 0, width: 50, height: midy-150, color: 'lightgrey' });
+    model = addRectangle(model, { x: midx-25, y: midy+150, width: 50, height: midy-150, color: 'lightgrey' });
+    model = addRectangle(model, { x: 0, y: midy-25, width: midx-500, height: 50, color: 'lightgrey' });
+    model = addRectangle(model, { x: midx+500, y: midy-25, width: midx-500, height: 50, color: 'lightgrey' });
     
     return model;
 }

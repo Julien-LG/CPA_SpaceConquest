@@ -1,4 +1,4 @@
-import { Triangle, Circle, Point } from './model';
+import { Triangle, Circle, Rectangle, Point } from './model';
 type Line = { start: Point, end: Point };
 /*******************************************************************
      * Fonctions de collision
@@ -65,33 +65,6 @@ const isPointInsideTriangle = (point : Point, triangle : Triangle) : boolean => 
     return area1 + area2 + area3 == areaOrig;
 }
 
-// const segmentIntersectsTriangle = (start : Point, end : Point, triangle : Triangle) : boolean => {
-//     // Check if endpoints are inside the triangle
-//     if (isPointInsideTriangle(start, triangle) || isPointInsideTriangle(end, triangle)) {
-//         return true;
-//     }
-
-//     // Check if segment intersects any triangle side
-//     for (let i = 0; i < triangle.points.length; i++) {
-//         const tStart = triangle.points[i];
-//         const tEnd = triangle.points[(i + 1) % triangle.points.length];
-//         if (segmentsIntersect(start, end, tStart, tEnd)) {
-//             return true;
-//         }
-//     }
-//     return false;
-// }
-
-// const segmentsIntersect = (p1 : Point , p2 : Point, q1 : Point , q2 : Point) => {
-//     // Calculate parts of the segment intersection formula
-//     const det = (q2.y - q1.y) * (p2.x - p1.x) - (q2.x - q1.x) * (p2.y - p1.y);
-//     if (det === 0) return false; // lines are parallel
-
-//     const lambda = ((q2.x - q1.x) * (q1.y - p1.y) - (q2.y - q1.y) * (q1.x - p1.x)) / det;
-//     const gamma = ((p1.x - p2.x) * (q1.y - p1.y) - (p1.y - p2.y) * (q1.x - p1.x)) / det;
-
-//     return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
-// }
 
 
 export const checkCollisionWithTriangle = (triangle1 : Triangle, triangle2 : Triangle) => {
@@ -109,14 +82,39 @@ export const checkCollisionWithTriangle = (triangle1 : Triangle, triangle2 : Tri
         }
     }
 
-    // // Vérifie la collision entre les segments des triangles
-    // for (let i = 0; i < triangle1.points.length; i++) {
-    //     const start = triangle1.points[i];
-    //     const end = triangle1.points[(i + 1) % triangle1.points.length];
-    //     if (segmentIntersectsTriangle(start, end, triangle2)) {
-    //         return true; // Collision détectée avec un segment
-    //     }
-    // }
+    return false; // Aucune collision détectée
+}
+
+// Calcule le vecteur normal d'un rectangle par rapport à un triangle
+export const calculateRectangleNormal = (rectangle: Rectangle, triangle: Triangle): Point => {
+    const rectangleCenter: Point = {
+        x: rectangle.x + rectangle.width / 2,
+        y: rectangle.y + rectangle.height / 2
+    };
+
+    // Calcule le centre du triangle
+    const triangleCenter: Point = triangle.center;
+
+    // Calcule le vecteur entre le centre du rectangle et le centre du triangle
+    const dx = triangleCenter.x - rectangleCenter.x;
+    const dy = triangleCenter.y - rectangleCenter.y;
+
+    // Détermine la direction du vecteur normal en fonction du côté avec la distance minimale
+    if (Math.abs(dx) > Math.abs(dy)) {
+        // Plus grand changement horizontal
+        return { x: Math.sign(dx), y: 0 };
+    } else {
+        // Plus grand changement vertical
+        return { x: 0, y: Math.sign(dy) };
+    }
+};
+
+export const checkCollisionWithRectangle = (triangle : Triangle, rectangles : Rectangle) => {
+    for (let point of triangle.points) {
+        if (point.x >= rectangles.x && point.x <= rectangles.x + rectangles.width && point.y >= rectangles.y && point.y <= rectangles.y + rectangles.height) {
+            return true; // Collision détectée avec un mur (asteroides)
+        }
+    }
     return false; // Aucune collision détectée
 }
 
@@ -128,6 +126,7 @@ export const checkCollisionWithBorders = (triangle : Triangle, canvasWidth : num
     }
     return false; // Aucune collision détectée
 }
+
 // Applique la vélocité aux triangles rouges et gère les collisions avec les bords du canvas
 // export const applyVelocityAndCheckBorders = (triangles: Triangle[], canvasWidth: number, canvasHeight: number) => {
 //     triangles.forEach(triangle => {

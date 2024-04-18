@@ -18,6 +18,7 @@ const calculateCentroid = (planets: Circle[]): Point => {
     };
 };
 
+
 /**************************************************
  * Fonctions pour les IA (Pas très complexe)
  *************************************************/
