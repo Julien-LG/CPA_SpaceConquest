@@ -14,3 +14,4 @@ export const BIGPLANETRADIUS = 45;
 export const UNHABITEDPLANETCOLOR = 'grey';
 
 export const TRIANGLESIZE = 10;
+export const FRICTION = 0.98;

@@ -3,9 +3,6 @@ type Line = { start: Point, end: Point };
 /*******************************************************************
      * Fonctions de collision
 *******************************************************************/
-const friction = 0.98;
-const velocity = { x: 5, y: 3 };
-
 export const segmentIntersectsCircle = (start : Point, end : Point , circle : Circle) => {
     const d = { x: end.x - start.x, y: end.y - start.y };
     const f = { x: start.x - circle.center.x, y: start.y - circle.center.y };
@@ -85,33 +82,10 @@ export const checkCollisionWithTriangle = (triangle1 : Triangle, triangle2 : Tri
     return false; // Aucune collision détectée
 }
 
-// Calcule le vecteur normal d'un rectangle par rapport à un triangle
-export const calculateRectangleNormal = (rectangle: Rectangle, triangle: Triangle): Point => {
-    const rectangleCenter: Point = {
-        x: rectangle.x + rectangle.width / 2,
-        y: rectangle.y + rectangle.height / 2
-    };
-
-    // Calcule le centre du triangle
-    const triangleCenter: Point = triangle.center;
-
-    // Calcule le vecteur entre le centre du rectangle et le centre du triangle
-    const dx = triangleCenter.x - rectangleCenter.x;
-    const dy = triangleCenter.y - rectangleCenter.y;
-
-    // Détermine la direction du vecteur normal en fonction du côté avec la distance minimale
-    if (Math.abs(dx) > Math.abs(dy)) {
-        // Plus grand changement horizontal
-        return { x: Math.sign(dx), y: 0 };
-    } else {
-        // Plus grand changement vertical
-        return { x: 0, y: Math.sign(dy) };
-    }
-};
-
 export const checkCollisionWithRectangle = (triangle : Triangle, rectangles : Rectangle) => {
     for (let point of triangle.points) {
-        if (point.x >= rectangles.x && point.x <= rectangles.x + rectangles.width && point.y >= rectangles.y && point.y <= rectangles.y + rectangles.height) {
+        if (point.x >= rectangles.x+1 && point.x <= rectangles.x+1 + rectangles.width 
+            && point.y >= rectangles.y+1 && point.y <= rectangles.y+1 + rectangles.height) {
             return true; // Collision détectée avec un mur (asteroides)
         }
     }
@@ -120,38 +94,76 @@ export const checkCollisionWithRectangle = (triangle : Triangle, rectangles : Re
 
 export const checkCollisionWithBorders = (triangle : Triangle, canvasWidth : number, canvasHeight : number) => {
     for (let point of triangle.points) {
-        if (point.x < 0 || point.x > canvasWidth || point.y < 0 || point.y > canvasHeight) {
+        if (point.x <= 0 || point.x >= canvasWidth || point.y <= 0 || point.y >= canvasHeight) {
             return true; // Collision détectée avec un bord
         }
     }
     return false; // Aucune collision détectée
 }
 
-// Applique la vélocité aux triangles rouges et gère les collisions avec les bords du canvas
-// export const applyVelocityAndCheckBorders = (triangles: Triangle[], canvasWidth: number, canvasHeight: number) => {
-//     triangles.forEach(triangle => {
-//         // Apply friction to each triangle's velocity
-//         velocity.x *= friction;
-//         velocity.y *= friction;
 
-//         triangle.points.forEach(point => {
-//             point.x += velocity.x;
-//             point.y += velocity.y;
+/*******************************************************************
+     * Fonctions de réaction ors d'une collision
+*******************************************************************/
+/*
+const calculateRectangleNormal = (rectangle: Rectangle, triangle: Triangle): Point => {
+    const rectangleCenter: Point = {
+        x: rectangle.x + rectangle.width / 2,
+        y: rectangle.y + rectangle.height / 2
+    };
 
-//             // Check horizontal borders and invert x velocity if collision occurs
-//             if (point.x < 0 || point.x > canvasWidth) {
-//                 velocity.x = -velocity.x;
-//                 // Adjust position to prevent sticking to the border
-//                 point.x = point.x < 0 ? 0 : canvasWidth;
-//             }
+    const triangleCenter: Point = triangle.center;
 
-//             // Check vertical borders and invert y velocity if collision occurs
-//             if (point.y < 0 || point.y > canvasHeight) {
-//                 velocity.y = -velocity.y;
-//                 // Adjust position to prevent sticking to the border
-//                 point.y = point.y < 0 ? 0 : canvasHeight;
-//             }
-//         });
-//     });
-// }
+    const edgeVectors: Point[] = [
+        { x: rectangle.x + rectangle.width, y: rectangle.y }, // Droite du rectangle
+        { x: rectangle.x, y: rectangle.y + rectangle.height }, // Bas du rectangle
+        { x: rectangle.x + rectangle.width, y: rectangle.y + rectangle.height } // Diagonale droite-bas du rectangle
+    ].map(vertex => ({
+        x: vertex.x - rectangleCenter.x,
+        y: vertex.y - rectangleCenter.y
+    }));
 
+    const axes: Point[] = [
+        { x: edgeVectors[0].y, y: -edgeVectors[0].x },
+        { x: edgeVectors[1].y, y: -edgeVectors[1].x },
+        { x: edgeVectors[2].y, y: -edgeVectors[2].x }
+    ];
+
+    let minOverlap = Infinity;
+    let minOverlapAxis: Point | null = null;
+
+    for (const axis of axes) {
+        const triangleProjections = triangle.points.map(vertex => axis.x * (vertex.x - triangleCenter.x) + axis.y * (vertex.y - triangleCenter.y));
+        const rectangleProjections = [
+            -rectangle.width / 2 * Math.abs(axis.x) + rectangle.height / 2 * Math.abs(axis.y),
+            rectangle.width / 2 * Math.abs(axis.x) + rectangle.height / 2 * Math.abs(axis.y)
+        ];
+
+        const triangleMinProjection = Math.min(...triangleProjections);
+        const triangleMaxProjection = Math.max(...triangleProjections);
+        const rectangleMinProjection = Math.min(...rectangleProjections);
+        const rectangleMaxProjection = Math.max(...rectangleProjections);
+        const overlap = Math.max(0, Math.min(triangleMaxProjection, rectangleMaxProjection) - Math.max(triangleMinProjection, rectangleMinProjection));
+
+        if (overlap <= 0) {
+            return axis;
+        }
+
+        if (overlap < minOverlap) {
+            minOverlap = overlap;
+            minOverlapAxis = axis;
+        }
+    }
+
+    const isHorizontalCollision = Math.abs(edgeVectors[1].x) > Math.abs(edgeVectors[1].y);
+    const isVerticalCollision = Math.abs(edgeVectors[0].x) > Math.abs(edgeVectors[0].y);
+
+    if (isHorizontalCollision) {
+        return { x: 0, y: minOverlapAxis ? Math.sign(minOverlapAxis.y) : 0 };
+    } else if (isVerticalCollision) {
+        return { x: minOverlapAxis ? Math.sign(minOverlapAxis.x) : 0, y: 0 };
+    } else {
+        return minOverlapAxis || { x: 0, y: 0 };
+    }
+};
+*/

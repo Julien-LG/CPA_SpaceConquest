@@ -166,31 +166,11 @@ export const reorientTriangle = (triangle : Triangle) : Triangle=> {
     return newTriangle;
 }
 
-
-// const collisionsGestion = (triangle : Triangle, circle : Circle) : boolean => {
-//     if (coll.checkCollisionWithCircle(triangle, circle)) {
-//         if (triangle.color === circle.color) {
-//             circle.hp += 1; // Augmente les points de vie du cercle
-//             console.log("test");
-//         }
-//         else {
-//             circle.hp -= 1; // Réduit les points de vie du cercle
-//             if (circle.hp <= 0) {
-//                 circle.color = triangle.color; // Change la couleur du cercle à celle du triangle
-//                 circle.hp = 10; // Réinitialise les points de vie
-//             }
-//             console.log("test2");
-//         }
-//         //console.log(this.checkCollisionWithCircle(triangle, circle));
-//         return false; // Supprime le triangle en cas de collision
-//     }
-//     else return true; // Garde le triangle s'il n'y a pas de collision
-// }
-
 const moveTriangles = (model: OurModel): OurModel => {
     const trianglesToRemove = new Set<Triangle>();  //Se contennat les triangles a supprimer
     const canvasHeight = model.canvasheight;
     const canvasWidth = model.canvaswidth;
+    const bounceDistance = 30;
 
     model.triangles.forEach((triangle) => {
         let hasCollided = false; // marqueur de collision
@@ -200,7 +180,19 @@ const moveTriangles = (model: OurModel): OurModel => {
             const dy = triangle.destination.y - triangle.center.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
             const angle = Math.atan2(dy, dx);
+            const velocity = {
+                x: triangle.destination.x - triangle.center.x,
+                y: triangle.destination.y - triangle.center.y
+            };
+            // Calcule le vecteur de vitesse pour le triangle, en direction de sa destination
+            const velocityMagnitude = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+            // Normalise le vecteur de vitesse pour obtenir la direction
+            const velocityNormalized = {
+                x: velocity.x / velocityMagnitude,
+                y: velocity.y / velocityMagnitude
+            };
 
+            //Mise à jour de la position du triangle
             if (distance < 1) {
                 triangle.destination = null;  // Reset destination quand arriver
             } else {
@@ -226,7 +218,7 @@ const moveTriangles = (model: OurModel): OurModel => {
                 }
             });
 
-            // Check collisions entre triangles si pas encore de collision
+            // Vérifie collisions entre triangles si pas encore de collision
             if (!hasCollided) {
                 for (let j = 0; j < model.triangles.length; j++) {
                     const triangle2 = model.triangles[j];
@@ -238,35 +230,29 @@ const moveTriangles = (model: OurModel): OurModel => {
                     }
                 }
             }
-            // check collisions avec les murs si pas encore de collision
+            // Vérifie les collisions avec les murs
             if (!hasCollided) {
                 model.rectangles.forEach(rectangle => {
                     if (coll.checkCollisionWithRectangle(triangle, rectangle)) {
-                        // Calculate the normal vector of the rectangle
-                        const normal = coll.calculateRectangleNormal(rectangle, triangle);
-                        // Calculate the dot product of the velocity vector and the normal vector
-                        const dotProduct = dx * normal.x + dy * normal.y;
-                        // Reflect the velocity vector using the normal vector
-                        const newDx = dx - 2 * dotProduct * normal.x;
-                        const newDy = dy - 2 * dotProduct * normal.y;
-                        // Update the destination of the triangle
+                        // Calculez une nouvelle destination qui est garantie d'être hors du rectangle.
+                        // Réinitialise la destination du triangle en le faisant reculer de 30 pixels dans la direction opposée
                         triangle.destination = {
-                            x: triangle.center.x + newDx,
-                            y: triangle.center.y + newDy
+                            x: triangle.center.x - velocityNormalized.x * bounceDistance,
+                            y: triangle.center.y - velocityNormalized.y * bounceDistance
                         };
-                        hasCollided = true;
-                        hasCollided = true;  // Set the collision flag
+                        hasCollided = true;  // Marque la collision
                     }
                 });
             }
-            // check collisions avec les bords si pas encore de collision
-            if (!hasCollided) {
-                if (coll.checkCollisionWithBorders(triangle, canvasWidth, canvasHeight)) {
-                    model.triangles.forEach(triangle => {
-                        triangle.destination = null;  // Mark all triangles for removal
-                        console.log("collision bord");
-                    });
-                }
+            // Vérifie les collisions avec les bords si aucune collision n'a encore eu lieu
+            if (!hasCollided && coll.checkCollisionWithBorders(triangle, canvasWidth, canvasHeight)) {
+                
+                // Réinitialise la destination du triangle en le faisant reculer de 30 pixels dans la direction opposée
+                triangle.destination = {
+                    x: triangle.center.x - velocityNormalized.x * bounceDistance,
+                    y: triangle.center.y - velocityNormalized.y * bounceDistance
+                };
+                hasCollided = true;  // Marque la collision
             }
         }
     });
@@ -531,7 +517,7 @@ export const createGameTest = (height : number, width : number) => {
 
     model = addBigPlanet(model, { x: midx, y: midy }, conf.UNHABITEDPLANETCOLOR);
 
-    model = addRectangle(model, { x: midx-25, y: 0, width: 50, height: midy-150, color: 'lightgrey' });
+    model = addRectangle(model, { x: midx-25, y: 0, width: 100, height: midy-150, color: 'lightgrey' });
     model = addRectangle(model, { x: midx-25, y: midy+150, width: 50, height: midy-150, color: 'lightgrey' });
     model = addRectangle(model, { x: 0, y: midy-25, width: midx-500, height: 50, color: 'lightgrey' });
     model = addRectangle(model, { x: midx+500, y: midy-25, width: midx-500, height: 50, color: 'lightgrey' });
