@@ -15,7 +15,8 @@ const setDestinationSelected = (model : OurModel, destination : Point) : OurMode
                     center : triangle.center, 
                     color : triangle.color, 
                     selected : triangle.selected, 
-                    destination : destination
+                    destination : destination,
+                    path : triangle.path
                 });
         }
         return triangle;
@@ -29,7 +30,8 @@ const setDestinationSelected = (model : OurModel, destination : Point) : OurMode
         canvaswidth : model.canvaswidth,
         startSelec: model.startSelec, 
         endSelec: model.endSelec, 
-        events: model.events
+        events: model.events,
+        grid: model.grid
     };
 }
 
@@ -47,7 +49,8 @@ const ondoubleclick = (model : OurModel) : OurModel => {
             center : triangle.center,
             color : triangle.color,
             selected : true,
-            destination : triangle.destination
+            destination : triangle.destination,
+            path : triangle.path
         } : triangle;
     });
     return { 
@@ -58,7 +61,8 @@ const ondoubleclick = (model : OurModel) : OurModel => {
         canvaswidth : model.canvaswidth,
         startSelec: null, 
         endSelec: null, 
-        events: model.events
+        events: model.events,
+        grid: model.grid
     };
 }
 
@@ -71,7 +75,8 @@ const onrightclick = (model : OurModel) : OurModel => {
             center : triangle.center,
             color : triangle.color,
             selected : false,
-            destination : triangle.destination
+            destination : triangle.destination,
+            path : triangle.path
         } : triangle;
     });
     return { 
@@ -82,7 +87,8 @@ const onrightclick = (model : OurModel) : OurModel => {
         canvaswidth : model.canvaswidth,
         startSelec: model.startSelec, 
         endSelec: model.endSelec, 
-        events: model.events
+        events: model.events,
+        grid: model.grid
     };
 }
 const onmousedown = (model : OurModel, start : Point) : OurModel => {
@@ -94,7 +100,8 @@ const onmousedown = (model : OurModel, start : Point) : OurModel => {
         canvaswidth : model.canvaswidth,
         startSelec: start, 
         endSelec: null, 
-        events: model.events
+        events: model.events,
+        grid: model.grid
     };
 }
 
@@ -107,7 +114,8 @@ const onmousemove = (model : OurModel, end : Point) : OurModel => {
         canvaswidth : model.canvaswidth,
         startSelec: model.startSelec, 
         endSelec: end, 
-        events: model.events
+        events: model.events,
+        grid: model.grid
     };
 }
 
@@ -147,7 +155,8 @@ export const executeEvents = (model : OurModel) : OurModel => {
         canvaswidth : model.canvaswidth,
         startSelec: newmodel.startSelec, 
         endSelec: newmodel.endSelec, 
-        events: []
+        events: [],
+        grid: newmodel.grid
     };
 }
 
@@ -160,6 +169,7 @@ export const addEvent = (model : OurModel, event : MouseEvent) : OurModel => {
         canvaswidth : model.canvaswidth,
         startSelec: model.startSelec, 
         endSelec: model.endSelec, 
-        events: model.events.concat(event)
+        events: model.events.concat(event),
+        grid : model.grid
     };
 }

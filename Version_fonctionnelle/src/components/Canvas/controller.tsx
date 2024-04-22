@@ -4,7 +4,7 @@ import * as conf from './config'
 import { addEvent } from './Model/eventFunctions';
 import { OurModel, updateModel, generateTrianglesAroundPlanetofSetSize, regenerateHP, createGameTest, winGame, loseGame } from "./Model/model";
 import { initView, ViewRender, drawAll, clearAll  } from "./view";
-import { directTrianglesToNearestPlanet, directTrianglesToWeakestClosestEnemy } from './Model/ai';
+import { directTrianglesToNearestPlanet, directTrianglesToWeakestClosestEnemy } from './Model/ia';
 
 
 export type OurController = {

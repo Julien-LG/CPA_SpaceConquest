@@ -1,8 +1,9 @@
 import { OurModel, Circle, Point, setDestinationEnemy } from './model';
+import { pathfinding } from './pathFinding';
 import * as conf from '../config';
 
 // Calcul la distance entre deux points, on ne prend pas la racine carrée pour éviter de faire une opération coûteuse (les comparaison de distance restent valides)
-const calculateDistance = (x1: number, y1: number, x2: number, y2: number): number => {
+export const calculateDistance = (x1: number, y1: number, x2: number, y2: number): number => {
     return ((x2 - x1) ** 2 + (y2 - y1) ** 2);
 };
 const calculateCentroid = (planets: Circle[]): Point => {
@@ -40,9 +41,10 @@ export const directTrianglesToNearestPlanet = (model: OurModel, enemyColor: stri
             return currentDistance < closestDistance ? current : closest;
     });
     const destination = { x: nearestPlanet.center.x, y: nearestPlanet.center.y };
-    model = setDestinationEnemy(model, destination, enemyColor);
+    let newModel = pathfinding(model, destination, conf.PLAYERCOLOR);
+    newModel = setDestinationEnemy(newModel, enemyColor);
     
-    return model;
+    return newModel;
 };
 
 // Attaque la planète ennemie la plus faible et la plus proche
@@ -67,7 +69,8 @@ export const directTrianglesToWeakestClosestEnemy = (model: OurModel, enemyColor
             return closest;
         });
     const destination = { x: nearestAndWeakestHabitedPlanet.center.x, y: nearestAndWeakestHabitedPlanet.center.y };
-    model = setDestinationEnemy(model, destination, enemyColor);
+    let newModel = pathfinding(model, destination, conf.PLAYERCOLOR);
+    newModel = setDestinationEnemy(newModel, enemyColor);
     
-    return model;
+    return newModel;
 };

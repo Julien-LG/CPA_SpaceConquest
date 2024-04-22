@@ -1,7 +1,7 @@
 import * as coll from "./collision";
 import * as conf from "../config";
 import { executeEvents } from "./eventFunctions";
-import { implementPathfinding } from './pathFinding'; // Import the pathfinding function
+import { GridCell, createGrid, pathfinding } from './pathFinding'; // Import the pathfinding function
 
 
 export type Point = { x: number, y: number };
@@ -11,7 +11,8 @@ export type Triangle = { //troupe
     center : Point ,
     color: string, 
     selected: boolean, 
-    destination: Point | null
+    destination: Point | null,
+    path : Point[]
 };
 export type Circle = { //planete
     center: Point,
@@ -36,12 +37,13 @@ export type OurModel = {
     endSelec: Point | null,
     canvasheight : number,
     canvaswidth : number,
-    events : MouseEvent[]
+    events : MouseEvent[],
+    grid : GridCell[][]
 };
 
 
 export const initModel = (height : number, width : number): OurModel => {
-    return { triangles: [], circles: [], rectangles: [], canvasheight : height, canvaswidth: width, startSelec: null, endSelec: null, events: [] };
+    return { triangles: [], circles: [], rectangles: [], canvasheight : height, canvaswidth: width, startSelec: null, endSelec: null, events: [], grid: [] };
 }
 
 // Fonctions pour creer et ajouter des triangles et cercles dans le modele
@@ -54,7 +56,8 @@ const addTriangle = (model: OurModel, triangle: Triangle): OurModel => {
         canvaswidth : model.canvaswidth, 
         startSelec: model.startSelec, 
         endSelec: model.endSelec,
-        events: model.events
+        events: model.events,
+        grid : model.grid
     };
 }
 
@@ -67,7 +70,8 @@ const addCircle = (model: OurModel, circle: Circle): OurModel => {
         canvaswidth : model.canvaswidth,
         startSelec: model.startSelec, 
         endSelec: model.endSelec,
-        events: model.events
+        events: model.events,
+        grid : model.grid
     };
 }
 
@@ -80,7 +84,8 @@ const addRectangle = (model: OurModel, rectangle: Rectangle): OurModel => {
         canvaswidth : model.canvaswidth,
         startSelec: model.startSelec, 
         endSelec: model.endSelec,
-        events: model.events
+        events: model.events,
+        grid : model.grid
     };
 }
 
@@ -111,10 +116,12 @@ export const selectTrianglesInArea = (model : OurModel) => {
             center : triangle.center, 
             color : triangle.color, 
             selected : selected, 
-            destination :  triangle.destination
+            destination :  triangle.destination,
+            path : triangle.path
         };
         return newTriangle;
     });
+
     return { 
         triangles: newtriangles, 
         circles: model.circles, 
@@ -123,7 +130,8 @@ export const selectTrianglesInArea = (model : OurModel) => {
         canvaswidth : model.canvaswidth,
         startSelec: null, 
         endSelec: null, 
-        events: model.events
+        events: model.events,
+        grid : model.grid
     };
 }
 
@@ -161,7 +169,8 @@ export const reorientTriangle = (triangle : Triangle) : Triangle=> {
         center : triangle.center, 
         color : triangle.color, 
         selected : triangle.selected, 
-        destination :  triangle.destination
+        destination :  triangle.destination,
+        path : triangle.path
     };
     return newTriangle;
 }
@@ -268,21 +277,25 @@ const moveTriangles = (model: OurModel): OurModel => {
         canvaswidth : model.canvaswidth,
         startSelec: model.startSelec,
         endSelec: model.endSelec,
-        events: model.events
+        events: model.events,
+        grid : model.grid
     };
 };
 
-export const setDestinationEnemy = (model : OurModel, destination : Point, color : string) : OurModel => {
+export const setDestinationEnemy = (model : OurModel, color : string) : OurModel => {
     // Définit la destination et initie le mouvement pour les triangles sélectionnés
     const newtriangles = model.triangles.map(triangle => {
-        if (triangle.color === color) {
+        if (triangle.color === color && !triangle.destination) {
+            const newDest = triangle.path.length > 0 ? triangle.path[0] : null;
+            const newpath = triangle.path.length > 0 ? triangle.path.slice(1) : [];
             return reorientTriangle(
                 {points : triangle.points, 
                     size : triangle.size, 
                     center : triangle.center, 
                     color : triangle.color, 
                     selected : triangle.selected, 
-                    destination : destination
+                    destination : newDest,
+                    path : newpath
                 });
         }
         return triangle;
@@ -296,9 +309,12 @@ export const setDestinationEnemy = (model : OurModel, destination : Point, color
         canvaswidth : model.canvaswidth,
         startSelec: model.startSelec, 
         endSelec: model.endSelec, 
-        events: model.events
+        events: model.events,
+        grid : model.grid
     };
 }
+
+
 export const winGame = (model : OurModel) : boolean => {
     const colors = model.circles.map(circle => circle.color);
     return colors.every(color => color === conf.PLAYERCOLOR);
@@ -332,7 +348,8 @@ const generateTriangleNearCircle = (model: OurModel, circle: Circle): OurModel =
         center : center, 
         color : color, 
         selected : false, 
-        destination : null
+        destination : null,
+        path : []
     };
 
     return addTriangle(model, triangle);
@@ -380,7 +397,8 @@ export const regenerateHP = (model : OurModel) : OurModel => {
         canvaswidth : model.canvaswidth,
         startSelec: model.startSelec, 
         endSelec: model.endSelec, 
-        events: model.events
+        events: model.events,
+        grid : model.grid
     };
 }
 
@@ -389,6 +407,7 @@ export const regenerateHP = (model : OurModel) : OurModel => {
 *******************************************************************/
 export const updateModel = (model : OurModel) : OurModel => {
     const newModel = executeEvents(model);
+    newModel.grid = createGrid(newModel, conf.CELLSIZE); // Create the grid for pathfinding
     return moveTriangles(newModel);
 }
 
@@ -444,7 +463,8 @@ const generateTriangles = (model : OurModel, height : number, width : number, nu
             center : center, 
             color : color, 
             selected : false, 
-            destination : null
+            destination : null,
+            path : []
         };
         model = addTriangle(model, triangle);
     }
@@ -521,6 +541,8 @@ export const createGameTest = (height : number, width : number) => {
     model = addRectangle(model, { x: midx-25, y: midy+150, width: 50, height: midy-150, color: 'lightgrey' });
     model = addRectangle(model, { x: 0, y: midy-25, width: midx-500, height: 50, color: 'lightgrey' });
     model = addRectangle(model, { x: midx+500, y: midy-25, width: midx-500, height: 50, color: 'lightgrey' });
+    
+    model.grid = createGrid(model, conf.CELLSIZE); // Create the grid for pathfinding
     
     return model;
 }
