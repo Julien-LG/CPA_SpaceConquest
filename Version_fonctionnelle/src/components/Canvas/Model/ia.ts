@@ -47,6 +47,36 @@ export const directTrianglesToNearestPlanet = (model: OurModel, enemyColor: stri
     return newModel;
 };
 
+
+// Attaque la planète ennemie la plus proche ayant le moins de points de santé
+export const directTrianglesToWeakestAndClosest = (model: OurModel, enemyColor: string): OurModel => {
+    const enemyPlanets = model.circles.filter(circle => circle.color === enemyColor);
+
+    if (enemyPlanets.length === 0) {
+        return model; // No enemy planets to calculate centroid
+    }
+
+    const centroid = calculateCentroid(enemyPlanets);
+
+    // Trouve la planète ennemie la plus proche et ayant le moins de points de santé
+    const weakestClosestPlanet = model.circles
+    .filter(circle => circle.color !== enemyColor).reduce((weakest, current) => {
+        const weakestDistance = calculateDistance(centroid.x, centroid.y, weakest.center.x, weakest.center.y);
+        const currentDistance = calculateDistance(centroid.x, centroid.y, current.center.x, current.center.y);
+        const weakestScore = weakest.hp + weakestDistance;
+        const currentScore = current.hp + currentDistance;
+
+        return currentScore < weakestScore ? current : weakest;
+    });
+
+    const destination = { x: weakestClosestPlanet.center.x, y: weakestClosestPlanet.center.y };
+    let newModel = pathfinding(model, destination, enemyColor);
+    //console.log(`pathfinding to ${destination.x}, ${destination.y} for attacking weakest and closest enemy planet`);
+    newModel = setDestinationEnemy(newModel, enemyColor);
+    
+    return newModel;
+};
+
 // Attaque la planète ennemie la plus faible et la plus proche
 export const directTrianglesToWeakestClosestEnemy = (model: OurModel, enemyColor: string): OurModel => {
     const enemyPlanets = model.circles.filter(circle => circle.color === enemyColor);

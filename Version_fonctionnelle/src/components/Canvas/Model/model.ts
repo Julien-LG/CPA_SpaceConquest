@@ -316,11 +316,11 @@ export const setDestinationEnemy = (model : OurModel, color : string) : OurModel
     };
 }
 
-
 export const winGame = (model : OurModel) : boolean => {
     const colors = model.circles.map(circle => circle.color);
     return colors.every(color => color === conf.PLAYERCOLOR || color === conf.UNHABITEDPLANETCOLOR);
 }
+
 export const loseGame = (model : OurModel) : boolean => {
     const colors = model.circles.map(circle => circle.color);
     return colors.every(color => color !== conf.PLAYERCOLOR);
@@ -331,7 +331,7 @@ export const loseGame = (model : OurModel) : boolean => {
      *  Fonction de génération de triangles(troupes) autour des cercles
 *******************************************************************/
 const generateTriangleNearCircle = (model: OurModel, circle: Circle): OurModel => {
-    const distToCircle = circle.radius+ 20; // Distance from the circle where the triangle will be generated
+    const distToCircle = circle.radius+ 35; // Distance from the circle where the triangle will be generated
     const angle = Math.random() * Math.PI * 2; // Random angle for triangle placement
 
     const x = circle.center.x + Math.cos(angle) * distToCircle;
@@ -355,7 +355,7 @@ const generateTriangleNearCircle = (model: OurModel, circle: Circle): OurModel =
     };
 
     return addTriangle(model, triangle);
-};
+}
 
 export const generateTrianglesAroundPlanetofSetSize = (model: OurModel, size : number): OurModel => {
     model.circles.forEach(circle => {

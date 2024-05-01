@@ -17,4 +17,4 @@ export const TRIANGLESIZE = 10;
 //export const TRIANGLEMAXSPEED = 2;
 //export const FRICTION = 0.98;
 
-export const CELLSIZE = 50;
+export const CELLSIZE = 30;

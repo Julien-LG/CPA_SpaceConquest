@@ -4,7 +4,7 @@ import * as conf from './config'
 import { addEvent } from './Model/eventFunctions';
 import { OurModel, updateModel, generateTrianglesAroundPlanetofSetSize, regenerateHP, createGameTest, winGame, loseGame } from "./Model/model";
 import { initView, ViewRender, drawAll, clearAll  } from "./view";
-import { directTrianglesToNearestPlanet, directTrianglesToWeakestClosestEnemy } from './Model/ia';
+import { directTrianglesToNearestPlanet, directTrianglesToWeakestAndClosest, directTrianglesToWeakestClosestEnemy } from './Model/ia';
 
 
 export type OurController = {
@@ -64,7 +64,7 @@ export const animate = (controller: OurController) => {
     const intervalId2 = setInterval(() => {
         controller.model = directTrianglesToNearestPlanet(controller.model, 'red');  // IA pour enemies rouges
         controller.model = directTrianglesToWeakestClosestEnemy(controller.model, 'green');  // IA pour enemies verts
-        controller.model = directTrianglesToWeakestClosestEnemy(controller.model, 'orange');  // IA pour enemies oranges
+        controller.model = directTrianglesToWeakestAndClosest(controller.model, 'orange');  // IA pour enemies oranges
     }, 6000);
 
     // Supprime l'intervalle lorsqu'on gagne ou perd

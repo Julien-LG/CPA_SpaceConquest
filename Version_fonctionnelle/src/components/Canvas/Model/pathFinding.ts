@@ -1,5 +1,5 @@
 import * as conf from './../config';
-import { Point, OurModel } from './model';
+import { Point, OurModel, Circle } from './model';
 
 
 export type GridCell = {
@@ -40,13 +40,14 @@ export const createGrid = (model: OurModel): GridCell[][] => {
                 walkable: true,  // Default is walkable unless specified by obstacles
                 cost : Infinity,
                 distToEnd : Infinity,
-                f : Infinity
+                f : Infinity,
             });
             //console.log('Création de la cellule à', x, y, 'avec x et y', Math.floor(x / cellSize), Math.floor(y / cellSize));
         }
         grid.push(row);
     }
 
+    
     // Appliquer les obstacles rectangulaires à la grille
     model.rectangles.forEach(rect => {
         //console.log(`Appliquer un obstacle à (${rect.x}, ${rect.y}) avec largeur ${rect.width} et hauteur ${rect.height}`);
@@ -75,39 +76,10 @@ const cloneGrid = (originalGrid: GridCell[][]): GridCell[][] => {
         cost: Infinity,
         distToEnd: Infinity,
         f: Infinity,
-        parent: undefined
+        parent: undefined,
+        isDiagonal: false
     })));
 };
-
-// // Vérifie si un chemin direct entre deux points est libre d'obstacles
-// const lineOfSight = (grid: GridCell[][], start: Point, end: Point): boolean => {
-//     let dx = Math.abs(end.x - start.x);
-//     let dy = Math.abs(end.y - start.y);
-//     let x = start.x;
-//     let y = start.y;
-//     let n = 1 + dx + dy;
-//     let x_inc = (end.x > start.x) ? 1 : -1;
-//     let y_inc = (end.y > start.y) ? 1 : -1;
-//     let error = dx - dy;
-//     dx *= 2;
-//     dy *= 2;
-
-//     while (n-- > 0) {
-//         if (!grid[y][x].walkable) {
-//             return false;  // Retourne faux si un obstacle est rencontré
-//         }
-
-//         if (error > 0) {
-//             x += x_inc;
-//             error -= dy;
-//         } else {
-//             y += y_inc;
-//             error += dx;
-//         }
-//     }
-
-//     return true;  // Retourne vrai si le chemin est libre
-// }
 
 
 // Fonction heuristique estimant le coût d'un nœud à la fin (utilisant la distance euclidienne pour les mouvements diagonaux)
@@ -153,10 +125,10 @@ const getNeighbors = (current: GridCell, grid: GridCell[][]): GridCell[] => {
         { dx: -1, dy: 0 }, // left
         { dx: 0, dy: 1 },  // down
         { dx: 0, dy: -1 },  // up
-        // { dx: 1, dy: 1 },  // down-right
-        // { dx: -1, dy: 1 }, // down-left
-        // { dx: 1, dy: -1 }, // up-right
-        // { dx: -1, dy: -1 } // up-left
+        { dx: 1, dy: 1 },  // down-right
+        { dx: -1, dy: 1 }, // down-left
+        { dx: 1, dy: -1 }, // up-right
+        { dx: -1, dy: -1 } // up-left
     ];
 
     directions.forEach(dir => {
@@ -173,11 +145,36 @@ const getNeighbors = (current: GridCell, grid: GridCell[][]): GridCell[] => {
 
 
 // Implémentation de l'algorithme de recherche de chemin (A*)
-const findPath = (originalGrid : GridCell[][], start: Point, end: Point): Point[] => {
+const findPath = (originalGrid : GridCell[][], start: Point, end: Point, circles : Circle[], color : string): Point[] => {
     // Vérifier si les coordonnées de départ ou de fin sont en dehors des limites de la grille
+    let cellSize = conf.CELLSIZE;
     let grid = cloneGrid(originalGrid);
-    const startCell = getCellFromPoint(start, conf.CELLSIZE, grid);
-    const endCell = getCellFromPoint(end, conf.CELLSIZE, grid);
+
+    // Appliquer les obstacles circulaires à la grille
+    circles.forEach(circle => {
+        if (circle.color === color) {
+            const startX = Math.floor((circle.center.x - circle.radius) / cellSize);
+            const endX = Math.ceil((circle.center.x + circle.radius) / cellSize);
+            const startY = Math.floor((circle.center.y - circle.radius) / cellSize);
+            const endY = Math.ceil((circle.center.y + circle.radius) / cellSize);
+
+            for (let y = startY; y <= endY; y++) {
+                for (let x = startX; x <= endX; x++) {
+                    if (y >= 0 && y < grid.length && x >= 0 && x < grid[y].length) {
+                        const cellCenterX = x * cellSize + cellSize / 2;
+                        const cellCenterY = y * cellSize + cellSize / 2;
+                        const distance = Math.sqrt((cellCenterX - circle.center.x) ** 2 + (cellCenterY - circle.center.y) ** 2);
+                        if (distance < circle.radius + (Math.sqrt(2) * cellSize / 2)) {  // Consider circle touching the cell
+                            grid[y][x].walkable = false;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    const startCell = getCellFromPoint(start, cellSize, grid);
+    const endCell = getCellFromPoint(end, cellSize, grid);
 
     console.log('Start Cell:', startCell);
     console.log('End Cell:', endCell);
@@ -204,7 +201,7 @@ const findPath = (originalGrid : GridCell[][], start: Point, end: Point): Point[
         let neighbors = getNeighbors(current, grid);
         neighbors.forEach(neighbor => {
             if (!neighbor.walkable || closedSet.has(neighbor)) return;
-            let tempCost = current.cost + 1;
+            let tempCost = (neighbor.x !== current.x && neighbor.y !== current.y) ? current.cost +1.414 : current.cost +1;
             if (tempCost < neighbor.cost) {
                 neighbor.cost = tempCost;
                 neighbor.parent = current;
@@ -225,7 +222,7 @@ export const pathfinding = (model: OurModel, destination : Point, color : string
     const newTriangles = model.triangles.map(triangle => {
         if (!triangle.destination && triangle.color === color) {
             console.log('---------------------------Checking triangle:', triangle);
-            const newPath = findPath(grid, triangle.center, destination);
+            const newPath = findPath(grid, triangle.center, destination, model.circles, color);
             if (newPath.length === 0) {
                 console.log('No new path found');
             }
