@@ -1,191 +1,235 @@
 import * as conf from './../config';
 import { Point, OurModel } from './model';
-import { calculateDistance } from './ia'; // Assume this function is exported from ai.ts
+
 
 export type GridCell = {
     x: number;
     y: number;
-    walkable: boolean;
-    cost?: number; // Coût pour atteindre cette cellule
+    center : Point; // Centre de la cellule utile pour les calculs de distance
+    walkable: boolean; //permet de savoir si la cellule contient un fragment de l'obstacle
+    cost: number; // Coût pour atteindre cette cellule
+    distToEnd : number;
+    f : number; //cost + distToEnd
     parent?: GridCell; // Cellule parent dans le chemin
-    f?: number; // Score F de l'A*
-    g?: number; // Coût depuis le début (G)
-    h?: number; // Coût estimé jusqu'à l'arrivée (H)
 }
 
+// Debugging function to print grid more accurately
+const printGrid = (grid: GridCell[][]) => {
+    const gridRepresentation = grid.map(row =>
+        row.map(cell => 
+            (cell.x === 0 && cell.y === 0) ? '1 ' :
+            (cell.x === grid[0].length - 1 && cell.y === grid.length - 1) ? '2 ' :
+            (cell.x === 0 && cell.y === grid.length - 1) ? '3 ' :
+            (cell.x === grid[0].length - 1 && cell.y === 0) ? '4 ' :
+            cell.walkable ? '_ ' : 'X '
+        ).join('')
+    ).join('\n');
+    console.log(gridRepresentation);
+}
 // Crée une grille basée sur les dimensions du canvas et la taille des obstacles
-export const createGrid = (model: OurModel, cellSize: number): GridCell[][] => {
-    const grid : GridCell[][] = [];
-    for (let x = 0; x < model.canvaswidth; x += cellSize) {
-        const row : GridCell [] = [];
-        for (let y = 0; y < model.canvasheight; y += cellSize) {
-            row.push({ x, y, walkable: true });
+export const createGrid = (model: OurModel): GridCell[][] => {
+    const grid: GridCell[][] = [];
+    const cellSize = conf.CELLSIZE;
+    for (let y = 0; y < model.canvasheight; y += cellSize) {
+        const row: GridCell[] = [];
+        for (let x = 0; x < model.canvaswidth; x += cellSize) {
+            row.push({
+                x: Math.floor(x / cellSize),
+                y: Math.floor(y / cellSize),
+                center: { x: x + cellSize / 2, y: y + cellSize / 2 },
+                walkable: true,  // Default is walkable unless specified by obstacles
+                cost : Infinity,
+                distToEnd : Infinity,
+                f : Infinity
+            });
+            //console.log('Création de la cellule à', x, y, 'avec x et y', Math.floor(x / cellSize), Math.floor(y / cellSize));
         }
         grid.push(row);
     }
 
-    // Marquer les cellules comme non traversables où il y a des obstacles
-    // model.circles.forEach(circle => {
-    //     if (circle.color !== conf.UNHABITEDPLANETCOLOR) {
-    //         const centerX = circle.center.x;
-    //         const centerY = circle.center.y;
-    //         const radiusSquared = circle.radius ** 2; // Précalcul du carré du rayon pour la comparaison
-
-    //         const startX = Math.max(0, Math.floor((centerX - circle.radius) / cellSize));
-    //         const endX = Math.min(grid.length, Math.ceil((centerX + circle.radius) / cellSize));
-    //         const startY = Math.max(0, Math.floor((centerY - circle.radius) / cellSize));
-    //         const endY = Math.min(grid[0].length, Math.ceil((centerY + circle.radius) / cellSize));
-
-    //         for (let x = startX; x < endX; x++) {
-    //             for (let y = startY; y < endY; y++) {
-    //                 const cellCenterX = x * cellSize + cellSize / 2;
-    //                 const cellCenterY = y * cellSize + cellSize / 2;
-    //                 if (calculateDistance(cellCenterX, cellCenterY, centerX, centerY) < radiusSquared) {
-    //                     grid[x][y].walkable = false;
-    //                 }
-    //             }
-    //         }
-    //     }
-    // });
-
+    // Appliquer les obstacles rectangulaires à la grille
     model.rectangles.forEach(rect => {
+        //console.log(`Appliquer un obstacle à (${rect.x}, ${rect.y}) avec largeur ${rect.width} et hauteur ${rect.height}`);
         const startX = Math.floor(rect.x / cellSize);
         const endX = Math.ceil((rect.x + rect.width) / cellSize);
         const startY = Math.floor(rect.y / cellSize);
         const endY = Math.ceil((rect.y + rect.height) / cellSize);
 
-        for (let x = startX; x < endX; x++) {
-            for (let y = startY; y < endY; y++) {
-                grid[x][y].walkable = false;
+        for (let y = startY; y < endY; y++) {
+            for (let x = startX; x < endX; x++) {
+                if (y < grid.length && y < grid[y].length) {
+                    grid[y][x].walkable = false;
+                }
             }
         }
     });
 
+    //console.log(grid.map(row => row.map(cell => cell.walkable ? ' ' : 'X').join('')).join('\n'));
+    printGrid(grid);
     return grid;
 }
 
+const cloneGrid = (originalGrid: GridCell[][]): GridCell[][] => {
+    return originalGrid.map(row => row.map(cell => ({
+        ...cell,
+        cost: Infinity,
+        distToEnd: Infinity,
+        f: Infinity,
+        parent: undefined
+    })));
+};
+
+// // Vérifie si un chemin direct entre deux points est libre d'obstacles
+// const lineOfSight = (grid: GridCell[][], start: Point, end: Point): boolean => {
+//     let dx = Math.abs(end.x - start.x);
+//     let dy = Math.abs(end.y - start.y);
+//     let x = start.x;
+//     let y = start.y;
+//     let n = 1 + dx + dy;
+//     let x_inc = (end.x > start.x) ? 1 : -1;
+//     let y_inc = (end.y > start.y) ? 1 : -1;
+//     let error = dx - dy;
+//     dx *= 2;
+//     dy *= 2;
+
+//     while (n-- > 0) {
+//         if (!grid[y][x].walkable) {
+//             return false;  // Retourne faux si un obstacle est rencontré
+//         }
+
+//         if (error > 0) {
+//             x += x_inc;
+//             error -= dy;
+//         } else {
+//             y += y_inc;
+//             error += dx;
+//         }
+//     }
+
+//     return true;  // Retourne vrai si le chemin est libre
+// }
+
+
 // Fonction heuristique estimant le coût d'un nœud à la fin (utilisant la distance euclidienne pour les mouvements diagonaux)
 function calculateHeuristic(a: GridCell, b: GridCell): number {
-    const dx = Math.abs(a.x - b.x);
-    const dy = Math.abs(a.y - b.y);
-    return dx + dy; // Utilisation de la distance de Manhattan
+    return Math.abs(a.x - b.x) + Math.abs(a.y - b.y); // Utilisation de la distance de Manhattan
 }
 
 // Reconstruire le chemin à partir de la cellule de fin jusqu'à la cellule de départ
-function reconstructPath(endCell: GridCell): Point[] {
+const reconstructPath = (endCell: GridCell, end : Point): Point[] => {
     let current = endCell;
-    const path: Point[] = [];
+    const path: Point[] = [end];
+    const visited = new Set();
+
+    console.log(`current.parent: ${current.parent}`);
     while (current.parent) {
-        path.unshift({ x: current.x, y: current.y }); // Ajoute la position courante au début du chemin
-        current = current.parent; // Remonte vers la cellule parent
+        if (visited.has(current)) {
+            console.log('Loop detected in path reconstruction');
+            break;
+        }
+        //console.log(`Adding cell (${current.x}, ${current.y}) to path`);
+        visited.add(current);
+        path.unshift({ x: current.center.x, y: current.center.y }); // Ajouter la position courante au début du chemin
+        current = current.parent; // Remonter vers la cellule parent
     }
-    path.unshift({ x: current.x, y: current.y }); // Ajoute la position de départ
-    return path;
+    path.unshift({ x: current.center.x, y: current.center.y }); // Ajouter la position de départ
+    return path; 
 }
 
-// Fonction pour récupérer un voisin s'il est dans les limites de la grille
-function getNeighbor(grid: GridCell[][], x: number, y: number): GridCell | null {
-    if (x >= 0 && x < grid.length && y >= 0 && y < grid[0].length) {
-        return grid[x][y];
+// Fonction pour convertir un point en coordonnées de cellule de grille
+const getCellFromPoint = (point: Point, cellSize: number, grid: GridCell[][]): GridCell | null => {
+    const xIndex = Math.floor(point.x / cellSize);
+    const yIndex = Math.floor(point.y / cellSize);
+    if (xIndex >= 0 && xIndex < grid[0].length && yIndex >= 0 && yIndex < grid.length) {
+        return grid[yIndex][xIndex];
     }
-    return null; // Retourne null si hors des limites
+    return null; // Retourne null si le point est hors des limites de la grille
 }
 
-function getNeighbors(cell: GridCell, grid: GridCell[][]): GridCell[] {
+const getNeighbors = (current: GridCell, grid: GridCell[][]): GridCell[] => {
     const neighbors: GridCell[] = [];
-    const dirs = [
-        { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 },
-        { x: 1, y: 1 }, { x: 1, y: -1 }, { x: -1, y: 1 }, { x: -1, y: -1 }
+    const directions = [
+        { dx: 1, dy: 0 },  // right
+        { dx: -1, dy: 0 }, // left
+        { dx: 0, dy: 1 },  // down
+        { dx: 0, dy: -1 },  // up
+        // { dx: 1, dy: 1 },  // down-right
+        // { dx: -1, dy: 1 }, // down-left
+        // { dx: 1, dy: -1 }, // up-right
+        // { dx: -1, dy: -1 } // up-left
     ];
 
-    dirs.forEach(dir => {
-        const neighbor = getNeighbor(grid, cell.x + dir.x, cell.y + dir.y);
-        if (neighbor && neighbor.walkable) {
-            if (dir.x !== 0 && dir.y !== 0) { // Diagonal
-                const beside1 = getNeighbor(grid, cell.x + dir.x, cell.y);
-                const beside2 = getNeighbor(grid, cell.x, cell.y + dir.y);
-                if (beside1 && beside1.walkable && beside2 && beside2.walkable) {
-                    neighbors.push(neighbor);
-                }
-            } else {
-                neighbors.push(neighbor);
-            }
+    directions.forEach(dir => {
+        const nx = current.x + dir.dx;
+        const ny = current.y + dir.dy;
+        if ((nx !== current.x || ny !== current.y) && nx >= 0 && nx < grid[0].length && ny >= 0 && ny < grid.length) {
+            neighbors.push(grid[ny][nx]);
         }
     });
 
+    //console.log(`Neighbors for (${current.x}, ${current.y}): ${neighbors.map(n => `(${n.x}, ${n.y})`).join(', ')}`);
     return neighbors;
 }
 
 
-// Implémentation de l'algorithme de pathfinding (A*)
-function findPath(start: Point, end: Point, grid: GridCell[][]): Point[] {
-    const startXIndex = Math.floor(start.x / 20);
-    const startYIndex = Math.floor(start.y / 20);
-    const endXIndex = Math.floor(end.x / 20);
-    const endYIndex = Math.floor(end.y / 20);
+// Implémentation de l'algorithme de recherche de chemin (A*)
+const findPath = (originalGrid : GridCell[][], start: Point, end: Point): Point[] => {
+    // Vérifier si les coordonnées de départ ou de fin sont en dehors des limites de la grille
+    let grid = cloneGrid(originalGrid);
+    const startCell = getCellFromPoint(start, conf.CELLSIZE, grid);
+    const endCell = getCellFromPoint(end, conf.CELLSIZE, grid);
 
-    // Check if start or end indices are out of bounds
-    if (startXIndex < 0 || startYIndex < 0 || endXIndex < 0 || endYIndex < 0 ||
-        startXIndex >= grid.length || startYIndex >= grid[0].length ||
-        endXIndex >= grid.length || endYIndex >= grid[0].length) {
-        return []; // Return an empty path if out of bounds
+    console.log('Start Cell:', startCell);
+    console.log('End Cell:', endCell);
+
+    if (!startCell || !endCell || !startCell.walkable || !endCell.walkable) {
+        //console.log('Les points de départ ou d\'arrivée ne sont pas valides ou ne sont pas traversables.');
+        return [];
     }
 
-    const startCell = grid[startXIndex][startYIndex];
-    const endCell = grid[endXIndex][endYIndex];
+    let openSet = [startCell];
+    let closedSet = new Set<GridCell>();
 
-    if (!startCell.walkable || !endCell.walkable) {
-        return []; // If start or end is not walkable, return empty path
-    }
-
-    const openSet: GridCell[] = [startCell];
-    const closedSet: Set<GridCell> = new Set();
-
-    startCell.g = 0;
-    startCell.h = calculateHeuristic(startCell, endCell);
-    startCell.f = startCell.g + startCell.h;
+    startCell.cost = 0; // Définir le coût initial de la cellule de départ à 0
 
     while (openSet.length > 0) {
-        openSet.sort((a, b) => a.f! - b.f!);
-        let current = openSet.shift()!;
-
-        if (current === endCell) {
-            return reconstructPath(endCell);
-        }
-
+        let current = openSet.reduce((lowest, cell) => (lowest.cost < cell.cost ? lowest : cell), openSet[0]);
+        openSet = openSet.filter(cell => cell !== current);
         closedSet.add(current);
 
-        getNeighbors(current, grid).forEach(neighbor => {
-            if (!closedSet.has(neighbor) && neighbor.walkable) {
-                let tentativeGScore = current.g! + calculateHeuristic(current, neighbor);
+        if (current === endCell) {
+            return reconstructPath(endCell, end);
+        }
 
-                if (!openSet.includes(neighbor)) {
-                    openSet.push(neighbor);
-                } else if (tentativeGScore >= neighbor.g!) {
-                    return; // Ce n'est pas un meilleur chemin
-                }
-
-                // on sauvegarde le chemin
+        let neighbors = getNeighbors(current, grid);
+        neighbors.forEach(neighbor => {
+            if (!neighbor.walkable || closedSet.has(neighbor)) return;
+            let tempCost = current.cost + 1;
+            if (tempCost < neighbor.cost) {
+                neighbor.cost = tempCost;
                 neighbor.parent = current;
-                neighbor.g = tentativeGScore;
-                neighbor.h = calculateHeuristic(neighbor, endCell);
-                neighbor.f = neighbor.g + neighbor.h;
+                if (!openSet.includes(neighbor)) openSet.push(neighbor);
             }
         });
     }
-    console.log('No path found');
-    return []; // Pas de chemin trouvé
+
+    console.log('No path found after loop.');
+    return []; // Aucun chemin trouvé si la boucle se termine sans retourner de chemin
 }
+
+
 
 // Fonction principale pour rechercher un chemin pour chaque triangle de la couleur donnée en évitant les obstacles (murs et planètes)
 export const pathfinding = (model: OurModel, destination : Point, color : string): OurModel => {
     const grid = model.grid;
     const newTriangles = model.triangles.map(triangle => {
         if (!triangle.destination && triangle.color === color) {
-            const newPath = findPath(triangle.center, destination, grid);
+            console.log('---------------------------Checking triangle:', triangle);
+            const newPath = findPath(grid, triangle.center, destination);
             if (newPath.length === 0) {
                 console.log('No new path found');
             }
+            console.log('New path found:', newPath);
             return {
                 points: triangle.points,
                 size: triangle.size,

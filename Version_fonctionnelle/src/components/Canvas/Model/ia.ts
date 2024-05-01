@@ -41,9 +41,9 @@ export const directTrianglesToNearestPlanet = (model: OurModel, enemyColor: stri
             return currentDistance < closestDistance ? current : closest;
     });
     const destination = { x: nearestPlanet.center.x, y: nearestPlanet.center.y };
-    let newModel = pathfinding(model, destination, conf.PLAYERCOLOR);
-    newModel = setDestinationEnemy(newModel, enemyColor);
-    
+    let newModel = pathfinding(model, destination, enemyColor);
+    //newModel = setDestinationEnemy(newModel, enemyColor);
+    console.log(`setDestinationEnemy to ${enemyColor} done`);
     return newModel;
 };
 
@@ -69,7 +69,8 @@ export const directTrianglesToWeakestClosestEnemy = (model: OurModel, enemyColor
             return closest;
         });
     const destination = { x: nearestAndWeakestHabitedPlanet.center.x, y: nearestAndWeakestHabitedPlanet.center.y };
-    let newModel = pathfinding(model, destination, conf.PLAYERCOLOR);
+    let newModel = pathfinding(model, destination, enemyColor);
+    //console.log(`pathfinding to ${destination.x}, ${destination.y} found`);
     newModel = setDestinationEnemy(newModel, enemyColor);
     
     return newModel;

@@ -288,6 +288,8 @@ export const setDestinationEnemy = (model : OurModel, color : string) : OurModel
         if (triangle.color === color && !triangle.destination) {
             const newDest = triangle.path.length > 0 ? triangle.path[0] : null;
             const newpath = triangle.path.length > 0 ? triangle.path.slice(1) : [];
+
+            //console.log(`Setting destination for triangle ${triangle} to:`, newDest);
             return reorientTriangle(
                 {points : triangle.points, 
                     size : triangle.size, 
@@ -317,7 +319,7 @@ export const setDestinationEnemy = (model : OurModel, color : string) : OurModel
 
 export const winGame = (model : OurModel) : boolean => {
     const colors = model.circles.map(circle => circle.color);
-    return colors.every(color => color === conf.PLAYERCOLOR);
+    return colors.every(color => color === conf.PLAYERCOLOR || color === conf.UNHABITEDPLANETCOLOR);
 }
 export const loseGame = (model : OurModel) : boolean => {
     const colors = model.circles.map(circle => circle.color);
@@ -406,8 +408,11 @@ export const regenerateHP = (model : OurModel) : OurModel => {
      * Fonction pour la gestion du modèle
 *******************************************************************/
 export const updateModel = (model : OurModel) : OurModel => {
-    const newModel = executeEvents(model);
-    newModel.grid = createGrid(newModel, conf.CELLSIZE); // Create the grid for pathfinding
+    let newModel = executeEvents(model);
+    newModel = setDestinationEnemy(newModel, conf.ENEMYCOLOR1);
+    newModel = setDestinationEnemy(newModel, conf.ENEMYCOLOR2);
+    newModel = setDestinationEnemy(newModel, conf.ENEMYCOLOR3);
+    //newModel.grid = createGrid(newModel); // maj de la grille pour les cercles de m^eme couleur
     return moveTriangles(newModel);
 }
 
@@ -542,7 +547,7 @@ export const createGameTest = (height : number, width : number) => {
     model = addRectangle(model, { x: 0, y: midy-25, width: midx-500, height: 50, color: 'lightgrey' });
     model = addRectangle(model, { x: midx+500, y: midy-25, width: midx-500, height: 50, color: 'lightgrey' });
     
-    model.grid = createGrid(model, conf.CELLSIZE); // Create the grid for pathfinding
+    model.grid = createGrid(model); // Create the grid for pathfinding
     
     return model;
 }

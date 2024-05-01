@@ -17,8 +17,8 @@ const App = () => {
     const timer = setTimeout(() => {
       if (container.current) {
         setSize({
-          height: container.current.clientHeight - (Padding * 2),
-          width: container.current.clientWidth - (Padding * 2),
+          height: 900,//container.current.clientHeight - (Padding * 2),
+          width: 1620,//container.current.clientWidth - (Padding * 2),
         });
       }
     }, 100);
