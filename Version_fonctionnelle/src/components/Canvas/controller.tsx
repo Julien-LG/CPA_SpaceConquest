@@ -3,8 +3,13 @@ import { useRef, useEffect } from 'react'
 import * as conf from './config'
 import { addEvent } from './Model/eventFunctions';
 import { OurModel, updateModel, generateTrianglesAroundPlanetofSetSize, regenerateHP, createGameTest, winGame, loseGame } from "./Model/model";
-import { initView, ViewRender, drawAll, clearAll  } from "./view";
-import { directTrianglesToNearestPlanet, directTrianglesToWeakestAndClosest, directTrianglesToWeakestClosestEnemy } from './Model/ia';
+import { initView, ViewRender, drawAll, clearAll, drawWin, drawLose} from "./view";
+import { 
+    //directTrianglesToNearestPlanet, 
+    //directTrianglesToWeakestAndClosest, 
+    //directTrianglesToWeakestClosestEnemy,
+    directTrianglesToStrategicTarget
+} from './Model/ia';
 
 
 export type OurController = {
@@ -33,11 +38,11 @@ export const animate = (controller: OurController) => {
         else {
             if (winGame(model)) {
                 clearAll(view);
-                alert('You win!');
+                drawWin(view);
             }
             else {
                 clearAll(view);
-                alert('You lose!');
+                drawLose(view);
             }
         }
     };
@@ -62,9 +67,9 @@ export const animate = (controller: OurController) => {
 
     // Actions des IA toutes les 4 secondes
     const intervalId2 = setInterval(() => {
-        controller.model = directTrianglesToNearestPlanet(controller.model, 'red');  // IA pour enemies rouges
-        controller.model = directTrianglesToWeakestClosestEnemy(controller.model, 'green');  // IA pour enemies verts
-        controller.model = directTrianglesToWeakestAndClosest(controller.model, 'orange');  // IA pour enemies oranges
+        controller.model = directTrianglesToStrategicTarget(controller.model, 'red');  // IA pour enemies rouges
+        controller.model = directTrianglesToStrategicTarget(controller.model, 'green');  // IA pour enemies verts
+        controller.model = directTrianglesToStrategicTarget(controller.model, 'orange');  // IA pour enemies oranges
     }, 6000);
 
     // Supprime l'intervalle lorsqu'on gagne ou perd

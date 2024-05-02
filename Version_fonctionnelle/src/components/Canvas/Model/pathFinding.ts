@@ -13,7 +13,12 @@ export type GridCell = {
     parent?: GridCell; // Cellule parent dans le chemin
 }
 
-// Debugging function to print grid more accurately
+
+/*******************************************
+ * Fonctions pour la création de la grille
+*******************************************/
+
+// Fonctions de débuggage pour afficher la grille
 const printGrid = (grid: GridCell[][]) => {
     const gridRepresentation = grid.map(row =>
         row.map(cell => 
@@ -50,11 +55,13 @@ export const createGrid = (model: OurModel): GridCell[][] => {
     
     // Appliquer les obstacles rectangulaires à la grille
     model.rectangles.forEach(rect => {
-        //console.log(`Appliquer un obstacle à (${rect.x}, ${rect.y}) avec largeur ${rect.width} et hauteur ${rect.height}`);
-        const startX = Math.floor(rect.x / cellSize);
-        const endX = Math.ceil((rect.x + rect.width) / cellSize);
-        const startY = Math.floor(rect.y / cellSize);
-        const endY = Math.ceil((rect.y + rect.height) / cellSize);
+        const triangleSize = conf.TRIANGLESIZE;
+        
+        //On prend en compte la taille des triangles pour les obstacles pour évité les collisions avec les angles des triangles
+        const startX = (rect.x- triangleSize) <= 0 ? Math.floor(rect.x / cellSize): Math.floor((rect.x- triangleSize)  / cellSize);
+        const endX =  (rect.x + rect.width + triangleSize) >= model.canvaswidth ? Math.ceil((rect.x + rect.width) / cellSize): Math.ceil((rect.x + rect.width + triangleSize) / cellSize);
+        const startY = (rect.y - triangleSize) <= 0 ? Math.floor(rect.y / cellSize) : Math.floor((rect.y - triangleSize) / cellSize);
+        const endY = (rect.y + rect.height + triangleSize) >= model.canvasheight ?  Math.ceil((rect.y + rect.height) / cellSize) : Math.ceil((rect.y + rect.height + triangleSize) / cellSize);
 
         for (let y = startY; y < endY; y++) {
             for (let x = startX; x < endX; x++) {
@@ -81,11 +88,9 @@ const cloneGrid = (originalGrid: GridCell[][]): GridCell[][] => {
     })));
 };
 
-
-// Fonction heuristique estimant le coût d'un nœud à la fin (utilisant la distance euclidienne pour les mouvements diagonaux)
-function calculateHeuristic(a: GridCell, b: GridCell): number {
-    return Math.abs(a.x - b.x) + Math.abs(a.y - b.y); // Utilisation de la distance de Manhattan
-}
+/*************************************************
+ * Fonctions pour l'algorithme A* de pathfinding
+*************************************************/
 
 // Reconstruire le chemin à partir de la cellule de fin jusqu'à la cellule de départ
 const reconstructPath = (endCell: GridCell, end : Point): Point[] => {
@@ -93,7 +98,7 @@ const reconstructPath = (endCell: GridCell, end : Point): Point[] => {
     const path: Point[] = [end];
     const visited = new Set();
 
-    console.log(`current.parent: ${current.parent}`);
+    //console.log(`current.parent: ${current.parent}`);
     while (current.parent) {
         if (visited.has(current)) {
             console.log('Loop detected in path reconstruction');
@@ -145,48 +150,48 @@ const getNeighbors = (current: GridCell, grid: GridCell[][]): GridCell[] => {
 
 
 // Implémentation de l'algorithme de recherche de chemin (A*)
-const findPath = (originalGrid : GridCell[][], start: Point, end: Point, circles : Circle[], color : string): Point[] => {
+export const findPath = (originalGrid : GridCell[][], start: Point, end: Point, circlesOfSameColor : Circle[]): Point[] => {
     // Vérifier si les coordonnées de départ ou de fin sont en dehors des limites de la grille
+
     let cellSize = conf.CELLSIZE;
     let grid = cloneGrid(originalGrid);
 
-    // Appliquer les obstacles circulaires à la grille
-    circles.forEach(circle => {
-        if (circle.color === color) {
-            const startX = Math.floor((circle.center.x - circle.radius) / cellSize);
-            const endX = Math.ceil((circle.center.x + circle.radius) / cellSize);
-            const startY = Math.floor((circle.center.y - circle.radius) / cellSize);
-            const endY = Math.ceil((circle.center.y + circle.radius) / cellSize);
+    // Appliquer les planètes de la même couleur que les triangles comme obstacle à la grille
+    circlesOfSameColor.forEach(circle => { 
+        const startX = Math.floor((circle.center.x - circle.radius) / cellSize);
+        const endX = Math.ceil((circle.center.x + circle.radius) / cellSize);
+        const startY = Math.floor((circle.center.y - circle.radius) / cellSize);
+        const endY = Math.ceil((circle.center.y + circle.radius) / cellSize);
 
-            for (let y = startY; y <= endY; y++) {
-                for (let x = startX; x <= endX; x++) {
-                    if (y >= 0 && y < grid.length && x >= 0 && x < grid[y].length) {
-                        const cellCenterX = x * cellSize + cellSize / 2;
-                        const cellCenterY = y * cellSize + cellSize / 2;
-                        const distance = Math.sqrt((cellCenterX - circle.center.x) ** 2 + (cellCenterY - circle.center.y) ** 2);
-                        if (distance < circle.radius + (Math.sqrt(2) * cellSize / 2)) {  // Consider circle touching the cell
-                            grid[y][x].walkable = false;
-                        }
+        for (let y = startY; y <= endY; y++) {
+            for (let x = startX; x <= endX; x++) {
+                if (y >= 0 && y < grid.length && x >= 0 && x < grid[y].length) {
+                    const cellCenterX = x * cellSize + cellSize / 2;
+                    const cellCenterY = y * cellSize + cellSize / 2;
+                    const distance = Math.sqrt((cellCenterX - circle.center.x) ** 2 + (cellCenterY - circle.center.y) ** 2);
+                    if (distance < circle.radius + (Math.sqrt(2) * cellSize / 2)) {  // Vérifier si la cellule touche le cercle
+                        grid[y][x].walkable = false;
                     }
                 }
             }
         }
     });
-
+    //printGrid(grid);
     const startCell = getCellFromPoint(start, cellSize, grid);
     const endCell = getCellFromPoint(end, cellSize, grid);
 
-    console.log('Start Cell:', startCell);
-    console.log('End Cell:', endCell);
+    //console.log('Start Cell:', startCell);
+    //console.log('End Cell:', endCell);
 
     if (!startCell || !endCell || !startCell.walkable || !endCell.walkable) {
-        //console.log('Les points de départ ou d\'arrivée ne sont pas valides ou ne sont pas traversables.');
+        console.log('Les points de départ ou d\'arrivée ne sont pas valides ou ne sont pas traversables.');
         return [];
     }
 
     let openSet = [startCell];
     let closedSet = new Set<GridCell>();
 
+    //startCell.walkable = true; // Marquer la cellule de départ comme traversable
     startCell.cost = 0; // Définir le coût initial de la cellule de départ à 0
 
     while (openSet.length > 0) {
@@ -201,7 +206,8 @@ const findPath = (originalGrid : GridCell[][], start: Point, end: Point, circles
         let neighbors = getNeighbors(current, grid);
         neighbors.forEach(neighbor => {
             if (!neighbor.walkable || closedSet.has(neighbor)) return;
-            let tempCost = (neighbor.x !== current.x && neighbor.y !== current.y) ? current.cost +1.414 : current.cost +1;
+            const isDiagPossible = (grid[neighbor.y ][current.x].walkable && grid[current.y][neighbor.x].walkable);
+            let tempCost = ((neighbor.x !== current.x && neighbor.y !== current.y) && (isDiagPossible)) ? current.cost +1.414 : current.cost +1;
             if (tempCost < neighbor.cost) {
                 neighbor.cost = tempCost;
                 neighbor.parent = current;
@@ -217,37 +223,19 @@ const findPath = (originalGrid : GridCell[][], start: Point, end: Point, circles
 
 
 // Fonction principale pour rechercher un chemin pour chaque triangle de la couleur donnée en évitant les obstacles (murs et planètes)
-export const pathfinding = (model: OurModel, destination : Point, color : string): OurModel => {
-    const grid = model.grid;
-    const newTriangles = model.triangles.map(triangle => {
-        if (!triangle.destination && triangle.color === color) {
-            console.log('---------------------------Checking triangle:', triangle);
-            const newPath = findPath(grid, triangle.center, destination, model.circles, color);
-            if (newPath.length === 0) {
-                console.log('No new path found');
-            }
-            console.log('New path found:', newPath);
-            return {
-                points: triangle.points,
-                size: triangle.size,
-                center: triangle.center,
-                color: triangle.color,
-                selected: triangle.selected,
-                destination: triangle.destination,
-                path : newPath
-            }
-        }
-        return triangle;
-    });
-    return {
-        triangles: newTriangles,
-        circles: model.circles,
-        rectangles: model.rectangles,
-        canvasheight: model.canvasheight,
-        canvaswidth: model.canvaswidth,
-        startSelec: model.startSelec,
-        endSelec: model.endSelec,
-        events: model.events,
-        grid: model.grid
-    }
-};
+// export const pathfinding = (model: OurModel, destination : Point, color : string): OurModel => {
+//     const grid = model.grid;
+//     const newTriangles = model.triangles.map(triangle => {
+//         if (!triangle.destination && triangle.color === color) {
+//             //console.log('---------------------------Checking triangle:', triangle);
+//             const newPath = findPath(grid, triangle.center, destination, model.circles, color);
+//             // if (newPath.length === 0) {
+//             //     console.log('No new path found');
+//             // }
+//             // console.log('New path found:', newPath);
+//             return { ...triangle, path : newPath};
+//         }
+//         return triangle;
+//     });
+//     return { ...model, triangles: newTriangles};
+// };

@@ -18,3 +18,4 @@ export const TRIANGLESIZE = 10;
 //export const FRICTION = 0.98;
 
 export const CELLSIZE = 30;
+export const MAXTROOPSPERPLAYER = 300;

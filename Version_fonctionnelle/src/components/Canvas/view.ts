@@ -86,3 +86,17 @@ export const drawAll = (view: ViewRender, model: OurModel) => {
 export const clearAll = (view: ViewRender) => {
     view.ctx.clearRect(0, 0, view.canvas.width, view.canvas.height);
 }
+
+export const drawWin = (view: ViewRender) => {
+    const { ctx } = view;
+    ctx.fillStyle = 'white';
+    ctx.font = '30px Arial';
+    ctx.fillText(`Vous avez gagné ! (^.^)`, view.canvas.width / 2 - 100, view.canvas.height / 2);
+}
+
+export const drawLose = (view: ViewRender) => {
+    const { ctx } = view;
+    ctx.fillStyle = 'white';
+    ctx.font = '30px Arial';
+    ctx.fillText(`Vous avez perdu (T.T)`, view.canvas.width / 2 - 100, view.canvas.height / 2);
+}

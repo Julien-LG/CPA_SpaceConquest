@@ -1,42 +1,34 @@
-import { OurModel, Point, reorientTriangle, selectTrianglesInArea} from './model';
+import { OurModel, Point, selectTrianglesInArea} from './model';
+import { findPath } from './pathFinding';
 import * as conf from './../config';
 
 
 /*******************************************************************
      * Fonctions pour les événements
 *******************************************************************/
-const setDestinationSelected = (model : OurModel, destination : Point) : OurModel => {
+const setPathSelected = (model : OurModel, destination : Point) : OurModel => {
     // Définit la destination et initie le mouvement pour les triangles sélectionnés
     const newtriangles = model.triangles.map(triangle => {
         if (triangle.selected) {
-            return reorientTriangle(
-                {points : triangle.points, 
-                    size : triangle.size, 
-                    center : triangle.center, 
-                    color : triangle.color, 
-                    selected : triangle.selected, 
-                    destination : destination,
-                    path : triangle.path
-                });
+            const grid = model.grid;
+            const circleOfPlayer = model.circles.filter(circle => circle.color === conf.PLAYERCOLOR);
+            const newPath = findPath(grid, { x: triangle.center.x, y: triangle.center.y }, destination, circleOfPlayer);
+            return {
+                ...triangle,
+                path: newPath
+            };
         }
         return triangle;
     });
     
     return {
-        triangles: newtriangles, 
-        circles: model.circles, 
-        rectangles: model.rectangles,
-        canvasheight : model.canvasheight,
-        canvaswidth : model.canvaswidth,
-        startSelec: model.startSelec, 
-        endSelec: model.endSelec, 
-        events: model.events,
-        grid: model.grid
+        ...model,
+        triangles: newtriangles
     };
 }
 
 const onleftclick = (model : OurModel, destination : Point) : OurModel => {
-    return setDestinationSelected(model, destination);
+    return setPathSelected(model, destination);
 }
 
 // Double click gauche pour selectionner tous les triangles de la couleur du joueur
@@ -44,13 +36,8 @@ const ondoubleclick = (model : OurModel) : OurModel => {
     const newtriangles = model.triangles.map(triangle => {
 
         return triangle.color === conf.PLAYERCOLOR ? {
-            points : triangle.points, 
-            size : triangle.size,
-            center : triangle.center,
-            color : triangle.color,
-            selected : true,
-            destination : triangle.destination,
-            path : triangle.path
+            ...triangle,
+            selected : true
         } : triangle;
     });
     return { 
@@ -66,17 +53,11 @@ const ondoubleclick = (model : OurModel) : OurModel => {
     };
 }
 
-
 const onrightclick = (model : OurModel) : OurModel => {
     const newtriangles = model.triangles.map(triangle => {
         return triangle.selected ? {
-            points : triangle.points, 
-            size : triangle.size,
-            center : triangle.center,
-            color : triangle.color,
-            selected : false,
-            destination : triangle.destination,
-            path : triangle.path
+            ...triangle,
+            selected : false
         } : triangle;
     });
     return { 
@@ -91,6 +72,7 @@ const onrightclick = (model : OurModel) : OurModel => {
         grid: model.grid
     };
 }
+
 const onmousedown = (model : OurModel, start : Point) : OurModel => {
     return { 
         triangles: model.triangles, 

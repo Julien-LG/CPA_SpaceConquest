@@ -1,9 +1,8 @@
 import { Triangle, Circle, Rectangle, Point } from './model';
-type Line = { start: Point, end: Point };
 /*******************************************************************
      * Fonctions de collision
 *******************************************************************/
-export const segmentIntersectsCircle = (start : Point, end : Point , circle : Circle) => {
+const segmentIntersectsCircle = (start : Point, end : Point , circle : Circle) => {
     const d = { x: end.x - start.x, y: end.y - start.y };
     const f = { x: start.x - circle.center.x, y: start.y - circle.center.y };
 
@@ -25,6 +24,24 @@ export const segmentIntersectsCircle = (start : Point, end : Point , circle : Ci
         return false;
     }
 }
+
+// Fonctions auxiliaire de collision entre triangles 
+const isPointInsideTriangle = (point : Point, triangle : Triangle) : boolean => {
+    const {x: px, y: py} = point;
+    const [v1, v2, v3] = triangle.points;
+
+    const areaOrig = Math.abs((v2.x - v1.x) * (v3.y - v1.y) - (v2.y - v1.y) * (v3.x - v1.x));
+    const area1 = Math.abs((v1.x - px) * (v2.y - py) - (v1.y - py) * (v2.x - px));
+    const area2 = Math.abs((v2.x - px) * (v3.y - py) - (v2.y - py) * (v3.x - px));
+    const area3 = Math.abs((v3.x - px) * (v1.y - py) - (v3.y - py) * (v1.x - px));
+
+    return area1 + area2 + area3 == areaOrig;
+}
+
+
+/*******************************************************************
+     * Fonctions de réaction lors d'une collision
+*******************************************************************/
 // Vérifie la collision entre un triangle et un cercle
 export const checkCollisionWithCircle = (triangle : Triangle,circle : Circle) => {
     // Vérifie la collision entre chaque sommet du triangle et le cercle
@@ -47,23 +64,7 @@ export const checkCollisionWithCircle = (triangle : Triangle,circle : Circle) =>
 
     return false; // Aucune collision détectée
 }
-
-
-// Fonctions de collision entre triangles 
-const isPointInsideTriangle = (point : Point, triangle : Triangle) : boolean => {
-    const {x: px, y: py} = point;
-    const [v1, v2, v3] = triangle.points;
-
-    const areaOrig = Math.abs((v2.x - v1.x) * (v3.y - v1.y) - (v2.y - v1.y) * (v3.x - v1.x));
-    const area1 = Math.abs((v1.x - px) * (v2.y - py) - (v1.y - py) * (v2.x - px));
-    const area2 = Math.abs((v2.x - px) * (v3.y - py) - (v2.y - py) * (v3.x - px));
-    const area3 = Math.abs((v3.x - px) * (v1.y - py) - (v3.y - py) * (v1.x - px));
-
-    return area1 + area2 + area3 == areaOrig;
-}
-
-
-
+// Vérifie la collision entre un triangle et un autre triangle
 export const checkCollisionWithTriangle = (triangle1 : Triangle, triangle2 : Triangle) => {
     // Vérifie la collision entre chaque sommet du triangle 1 et le triangle 2
     for (let point of triangle1.points) {
@@ -82,6 +83,7 @@ export const checkCollisionWithTriangle = (triangle1 : Triangle, triangle2 : Tri
     return false; // Aucune collision détectée
 }
 
+// Vérifie la collision entre un triangle et un rectangle(mur)
 export const checkCollisionWithRectangle = (triangle : Triangle, rectangles : Rectangle) => {
     for (let point of triangle.points) {
         if (point.x >= rectangles.x+1 && point.x <= rectangles.x+1 + rectangles.width 
@@ -92,6 +94,7 @@ export const checkCollisionWithRectangle = (triangle : Triangle, rectangles : Re
     return false; // Aucune collision détectée
 }
 
+// Vérifie la collision entre un triangle et les bords du canvas
 export const checkCollisionWithBorders = (triangle : Triangle, canvasWidth : number, canvasHeight : number) => {
     for (let point of triangle.points) {
         if (point.x <= 0 || point.x >= canvasWidth || point.y <= 0 || point.y >= canvasHeight) {
@@ -102,9 +105,7 @@ export const checkCollisionWithBorders = (triangle : Triangle, canvasWidth : num
 }
 
 
-/*******************************************************************
-     * Fonctions de réaction ors d'une collision
-*******************************************************************/
+
 /*
 const calculateRectangleNormal = (rectangle: Rectangle, triangle: Triangle): Point => {
     const rectangleCenter: Point = {
