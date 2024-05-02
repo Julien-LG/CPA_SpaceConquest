@@ -1,15 +1,52 @@
-# CPA_Projet
- Projet de CPA.
+# CPA
+
+## Pour lancer le projet
+
+### Prérequis
+
+- nodejs
+
+### Installation
+
+```bash
+npm install
+```
+
+ou avec yarn
+
+```bash
+yarn install
+```
 
 
-#Lancement du projet en local
+### Lancer le projet
 
--ouvrir le terminal dans le repértoire courant et faire $http-server  
--accèder à l'adresse 127.0.0.1:8080
+```bash
+npm run start
+```
+
+ou avec yarn
+
+```bash
+yarn start
+```
+
+## Projet
+
+Objectif créer un petit jeu en 2D (ou 3D isométrique) jouable en navigateur.
+
+Contraintes :
+Avoir au moins un de ces éléments présent dans le jeu :
+- de la physique (collision, gravité)
+- de la génération aléatoire (création de niveau aléatoire: labyrinthe, plateforme, ennemi)
+- du pathfinding (des éléments de jeu utilisant un algo de pathfinding: Dijkstra, A*, D*)
+
+### Choix
+- jeu de type RTS spatial, conquete de planetes avec des vaisseaux spatiaux
+- collision, pathfinding
 
 
-#Pour les modifications de fichiers
+## Copyright (C)
 
-Pour accèder à une classe de pixi.js, il faut utiliser la variable globale "PIXI", donc pour utiliser la classe "Application" on fait : ¨PIXI.Application".  
-
-Pour réaliser des imports il faut que les fichiers soient es modules JavaScript, d'où l'utilisation de http-server, dans le cas contraire il faut utiliser des .mjs mais le lien entre différents fichiers est plus compliqué, et puisque le but à terme et de tout poster en ligne, alors il vaut mieux faire un serveur http temporaire.
+- Le canva du projet vient du Github de notre chargé de TME Arthur Escriou
+- Les différents vaisseaux ont été générés par DALL-E
