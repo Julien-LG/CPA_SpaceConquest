@@ -19,6 +19,7 @@ export type Circle = { //planete
     center: Point,
     radius: number, 
     color: string, 
+    sprite: string,
     hp : number,
     maxHP : number
 };
@@ -421,30 +422,33 @@ export const updateModel = (model : OurModel) : OurModel => {
 /*******************************************************************
      * Fonctions pour creer des planètes
 *******************************************************************/
-const addSmallPlanet = (model : OurModel, point : Point, color : string) : OurModel => {
+const addSmallPlanet = (model : OurModel, point : Point, color : string, sprite : string) : OurModel => {
     const radius = conf.SMALLPLANETRADIUS;
     const center = point;
     const colorP = color;
+    const spriteP = sprite;
     const hp = conf.SMALLPLANETLIFE;
-    const circle : Circle = { center: center, radius: radius, color: colorP, hp: hp, maxHP: hp};
+    const circle : Circle = { center: center, radius: radius, color: colorP, sprite: spriteP, hp: hp, maxHP: hp};
     return addCircle(model, circle);
 }
 
-const addMediumPlanet = (model : OurModel, point : Point, color : string) : OurModel => {
+const addMediumPlanet = (model : OurModel, point : Point, color : string, sprite : string) : OurModel => {
     const radius = conf.MEDIUMPLANETRADIUS;
     const center = point;
     const colorP = color;
+    const spriteP = sprite;
     const hp = conf.MEDIUMPLANETLIFE;
-    const circle : Circle = { center: center, radius: radius, color: colorP, hp: hp, maxHP: hp};
+    const circle : Circle = { center: center, radius: radius, color: colorP, sprite: spriteP, hp: hp, maxHP: hp};
     return addCircle(model, circle);
 }
 
-const addBigPlanet = (model : OurModel, point : Point, color : string) : OurModel => {
+const addBigPlanet = (model : OurModel, point : Point, color : string, sprite : string) : OurModel => {
     const radius = conf.BIGPLANETRADIUS;
     const center = point;
     const colorP = color;
+    const spriteP = sprite;
     const hp = conf.BIGPLANETLIFE;
-    const circle : Circle = { center: center, radius: radius, color: colorP, hp: hp, maxHP: hp};
+    const circle : Circle = { center: center, radius: radius, color: colorP, sprite: spriteP, hp: hp, maxHP: hp};
     return addCircle(model, circle);
 }
 
@@ -484,8 +488,9 @@ const generateCircles = (model : OurModel) : OurModel => {
     const radius = conf.MEDIUMPLANETRADIUS;
     const center = { x: x, y: y };
     const color = conf.ENEMYCOLOR1;
+    const sprite = conf.ENEMYPLANETSPRITE1;
     const hp = conf.BIGPLANETLIFE;
-    const circle : Circle = { center: center, radius: radius, color: color, hp: hp, maxHP: hp};
+    const circle : Circle = { center: center, radius: radius, color: color, sprite: sprite, hp: hp, maxHP: hp};
     model = addCircle(model, circle);
     
     const x2 = 300;
@@ -493,8 +498,9 @@ const generateCircles = (model : OurModel) : OurModel => {
     const radius2 = conf.BIGPLANETRADIUS;
     const center2 = { x: x2, y: y2 };
     const color2 = conf.PLAYERCOLOR;
+    const sprite2 = conf.PLAYERPLANETSPRITE;
     const hp2 = conf.BIGPLANETLIFE;
-    const circle2 : Circle = { center: center2, radius: radius2, color: color2, hp: hp2, maxHP: hp2};
+    const circle2 : Circle = { center: center2, radius: radius2, color: color2, sprite: sprite2, hp: hp2, maxHP: hp2};
     model = addCircle(model, circle2);
 
     return model;
@@ -504,46 +510,46 @@ export const createGameTest = (height : number, width : number) => {
     let model = initModel(height, width);
     //model = generateTriangles(model, height, width, 1);
 
-    model = addBigPlanet(model, { x: width-120 , y: 120 }, conf.PLAYERCOLOR);
-    model = addBigPlanet(model, { x: width-120, y: height-120 }, conf.ENEMYCOLOR1);
-    model = addBigPlanet(model, { x: 120, y: 120 }, conf.ENEMYCOLOR2);
-    model = addBigPlanet(model, { x: 120, y: height-120 }, conf.ENEMYCOLOR3);
+    model = addBigPlanet(model, { x: width-120 , y: 120 }, conf.PLAYERCOLOR, conf.PLAYERPLANETSPRITE);
+    model = addBigPlanet(model, { x: width-120, y: height-120 }, conf.ENEMYCOLOR1, conf.ENEMYPLANETSPRITE1);
+    model = addBigPlanet(model, { x: 120, y: 120 }, conf.ENEMYCOLOR2, conf.ENEMYPLANETSPRITE2);
+    model = addBigPlanet(model, { x: 120, y: height-120 }, conf.ENEMYCOLOR3, conf.ENEMYPLANETSPRITE3);
 
-    model = addMediumPlanet(model, { x: width-250 , y: 250 }, conf.PLAYERCOLOR);
-    model = addMediumPlanet(model, { x: width-250, y: height-250 }, conf.ENEMYCOLOR1);
-    model = addMediumPlanet(model, { x: 250, y: 250 }, conf.ENEMYCOLOR2);
-    model = addMediumPlanet(model, { x: 250, y: height-250 }, conf.ENEMYCOLOR3);
+    model = addMediumPlanet(model, { x: width-250 , y: 250 }, conf.PLAYERCOLOR, conf.PLAYERPLANETSPRITE);
+    model = addMediumPlanet(model, { x: width-250, y: height-250 }, conf.ENEMYCOLOR1, conf.ENEMYPLANETSPRITE1);
+    model = addMediumPlanet(model, { x: 250, y: 250 }, conf.ENEMYCOLOR2, conf.ENEMYPLANETSPRITE2);
+    model = addMediumPlanet(model, { x: 250, y: height-250 }, conf.ENEMYCOLOR3, conf.ENEMYPLANETSPRITE3);
 
-    model = addMediumPlanet(model, { x: width-120 , y: 300 }, conf.UNHABITEDPLANETCOLOR);
-    model = addMediumPlanet(model, { x: width-120, y: height-300 }, conf.UNHABITEDPLANETCOLOR);
-    model = addMediumPlanet(model, { x: 120, y: 300 }, conf.UNHABITEDPLANETCOLOR);
-    model = addMediumPlanet(model, { x: 120, y: height-300 }, conf.UNHABITEDPLANETCOLOR);
+    model = addMediumPlanet(model, { x: width-120 , y: 300 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
+    model = addMediumPlanet(model, { x: width-120, y: height-300 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
+    model = addMediumPlanet(model, { x: 120, y: 300 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
+    model = addMediumPlanet(model, { x: 120, y: height-300 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
 
-    model = addMediumPlanet(model, { x: width-300 , y: 100 }, conf.UNHABITEDPLANETCOLOR);
-    model = addMediumPlanet(model, { x: width-300, y: height-100 }, conf.UNHABITEDPLANETCOLOR);
-    model = addMediumPlanet(model, { x: 300, y: 100 }, conf.UNHABITEDPLANETCOLOR);
-    model = addMediumPlanet(model, { x: 300, y: height-100 }, conf.UNHABITEDPLANETCOLOR);
+    model = addMediumPlanet(model, { x: width-300 , y: 100 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
+    model = addMediumPlanet(model, { x: width-300, y: height-100 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
+    model = addMediumPlanet(model, { x: 300, y: 100 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
+    model = addMediumPlanet(model, { x: 300, y: height-100 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
 
-    model = addSmallPlanet(model, { x: width-500 , y: 100 }, conf.UNHABITEDPLANETCOLOR);
-    model = addSmallPlanet(model, { x: width-500, y: height-100 }, conf.UNHABITEDPLANETCOLOR);
-    model = addSmallPlanet(model, { x: 500, y: 100 }, conf.UNHABITEDPLANETCOLOR);
-    model = addSmallPlanet(model, { x: 500, y: height-100 }, conf.UNHABITEDPLANETCOLOR);
+    model = addSmallPlanet(model, { x: width-500 , y: 100 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
+    model = addSmallPlanet(model, { x: width-500, y: height-100 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
+    model = addSmallPlanet(model, { x: 500, y: 100 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
+    model = addSmallPlanet(model, { x: 500, y: height-100 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
 
-    model = addSmallPlanet(model, { x: width-425 , y: 300 }, conf.UNHABITEDPLANETCOLOR);
-    model = addSmallPlanet(model, { x: width-425, y: height-300 }, conf.UNHABITEDPLANETCOLOR);
-    model = addSmallPlanet(model, { x: 425, y: 300 }, conf.UNHABITEDPLANETCOLOR);
-    model = addSmallPlanet(model, { x: 425, y: height-300 }, conf.UNHABITEDPLANETCOLOR);
+    model = addSmallPlanet(model, { x: width-425 , y: 300 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
+    model = addSmallPlanet(model, { x: width-425, y: height-300 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
+    model = addSmallPlanet(model, { x: 425, y: 300 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
+    model = addSmallPlanet(model, { x: 425, y: height-300 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
 
 
     const midx = width/2;
     const midy = height/2;
-    model = addSmallPlanet(model, { x: midx-120, y: 550 }, conf.UNHABITEDPLANETCOLOR);
-    model = addSmallPlanet(model, { x: midx+120, y: 550 }, conf.UNHABITEDPLANETCOLOR);
-    model = addSmallPlanet(model, { x: midx+120, y: height-550 }, conf.UNHABITEDPLANETCOLOR);
-    model = addSmallPlanet(model, { x: midx-120, y: height-550 }, conf.UNHABITEDPLANETCOLOR);
+    model = addSmallPlanet(model, { x: midx-120, y: 550 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
+    model = addSmallPlanet(model, { x: midx+120, y: 550 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
+    model = addSmallPlanet(model, { x: midx+120, y: height-550 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
+    model = addSmallPlanet(model, { x: midx-120, y: height-550 }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
     
 
-    model = addBigPlanet(model, { x: midx, y: midy }, conf.UNHABITEDPLANETCOLOR);
+    model = addBigPlanet(model, { x: midx, y: midy }, conf.UNHABITEDPLANETCOLOR, conf.UNHABITEDPLANETSPRITE);
 
     model = addRectangle(model, { x: midx-50, y: 0, width: 100, height: midy-150, color: 'lightgrey' });
     model = addRectangle(model, { x: midx-50, y: midy+150, width:100, height: midy-150, color: 'lightgrey' });

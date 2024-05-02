@@ -20,3 +20,11 @@ export const MAXROTATIONSTEP = 0.08;
 
 export const CELLSIZE = 30;
 export const MAXTROOPSPERPLAYER = 300;
+
+export const BACKGROUNDIMAGE = "https://cdn.pixabay.com/photo/2017/08/30/01/05/milky-way-2695569_1280.jpg";
+// export const BACKGROUNDIMAGE = "background.png";
+export const PLAYERPLANETSPRITE = "Player.png";
+export const ENEMYPLANETSPRITE1 = "Enemy1.png";
+export const ENEMYPLANETSPRITE2 = "Enemy2.png";
+export const ENEMYPLANETSPRITE3 = "Enemy3.png";
+export const UNHABITEDPLANETSPRITE = "Unhabited.png";

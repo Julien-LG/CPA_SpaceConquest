@@ -1,4 +1,14 @@
+import { BACKGROUNDIMAGE } from './config';
 import {Triangle, Circle, Rectangle, OurModel} from './Model/model';
+
+const doSprites = true;
+
+const backgroundImage = new Image();
+backgroundImage.src = BACKGROUNDIMAGE;
+
+const planet = new Image();
+planet.src = "https://preview.redd.it/oixhape35id31.png?width=288&format=png&auto=webp&s=d97e53544bb9675cd0977fac1a6f115ff6a92411";
+
 
 export type ViewRender = {
     canvas: HTMLCanvasElement,
@@ -38,19 +48,29 @@ const drawTriangle = (ctx: CanvasRenderingContext2D, triangle: Triangle) => {
 }
 
 const drawCircle = (ctx: CanvasRenderingContext2D, circle: Circle) => {
-    // Dessine un cercle sur le canvas
-    ctx.beginPath();
-    ctx.arc(circle.center.x, circle.center.y, circle.radius, 0, Math.PI * 2);
-    ctx.fillStyle = circle.color;
-    ctx.fill();
+    if (doSprites) {
+        const planet = new Image();
+        planet.src = circle.sprite;
+        ctx.drawImage(planet, circle.center.x-circle.radius, circle.center.y-circle.radius, circle.radius*2, circle.radius*2);
+        ctx.fillStyle = 'white';
+        ctx.font = '14px Arial';
+        ctx.fillText(`HP: ${circle.hp}`, circle.center.x - 20, circle.center.y + 5);
+    }
+    else {
+        // Dessine un cercle sur le canvas
+        ctx.beginPath();
+        ctx.arc(circle.center.x, circle.center.y, circle.radius, 0, Math.PI * 2);
+        ctx.fillStyle = circle.color;
+        ctx.fill();
 
-    ctx.fillStyle = 'white';
-    ctx.font = '14px Arial';
-    ctx.fillText(`HP: ${circle.hp}`, circle.center.x - 20, circle.center.y + 5);
+        ctx.fillStyle = 'white';
+        ctx.font = '14px Arial';
+        ctx.fillText(`HP: ${circle.hp}`, circle.center.x - 20, circle.center.y + 5);
 
-    ctx.strokeStyle = 'grey';
-    ctx.lineWidth = 1.5; 
-    ctx.stroke(); // Dessine le contour
+        ctx.strokeStyle = 'grey';
+        ctx.lineWidth = 1.5; 
+        ctx.stroke(); // Dessine le contour
+    }    
 }
 
 const drawRectangle = (ctx: CanvasRenderingContext2D, rectangle: Rectangle) => {
@@ -92,11 +112,12 @@ const drawGrid = (ctx: CanvasRenderingContext2D, model: OurModel) => {
         ctx.stroke();
         ctx.closePath();
     }
-}
+}    
 
 export const drawAll = (view: ViewRender, model: OurModel) => {
     const { ctx } = view;
-    ctx.clearRect(0, 0, view.canvas.width, view.canvas.height);
+    ctx.clearRect(0, 0, view.canvas.width, view.canvas.height);    
+    ctx.drawImage(backgroundImage, 0, 0, view.canvas.width, view.canvas.height);
     drawGrid(ctx, model);
     model.triangles.forEach(triangle => drawTriangle(ctx, triangle));
     model.circles.forEach(circle => drawCircle(ctx, circle));
