@@ -112,12 +112,12 @@ export const drawWin = (view: ViewRender) => {
     const { ctx } = view;
     ctx.fillStyle = 'white';
     ctx.font = '30px Arial';
-    ctx.fillText(`Vous avez gagné ! (^.^)`, view.canvas.width / 2 - 100, view.canvas.height / 2);
+    ctx.fillText(`Vous avez gagné ! 🥳`, view.canvas.width / 2 - 100, view.canvas.height / 2);
 }
 
 export const drawLose = (view: ViewRender) => {
     const { ctx } = view;
     ctx.fillStyle = 'white';
     ctx.font = '30px Arial';
-    ctx.fillText(`Vous avez perdu (T.T)`, view.canvas.width / 2 - 100, view.canvas.height / 2);
+    ctx.fillText(`Vous avez perdu 😭`, view.canvas.width / 2 - 100, view.canvas.height / 2);
 }
