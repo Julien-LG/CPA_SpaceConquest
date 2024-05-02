@@ -135,6 +135,7 @@ const reorientTriangle = (triangle : Triangle) : Triangle=> {
 
     // Si aucune destination n'est définie, retournez le triangle tel quel théoriquement impossible mais vérification obligatoire
     if (!destination) return triangle;
+
     // Calculez l'angle de direction vers la destination
     const angleToDestination = Math.atan2(destination.y - center.y, destination.x - center.x);
 
@@ -144,16 +145,8 @@ const reorientTriangle = (triangle : Triangle) : Triangle=> {
 
     // Calculez l'angle de rotation nécessaire
     let rotationAngle = angleToDestination - angleCurrentTop;
-
-    // Normalisez l'angle de rotation dans l'intervalle [-π, π] (on cherche l'angle le plus petit ppour tourner le plus vite)
-    const rotationAngle2 = (rotationAngle + Math.PI) % (2 * Math.PI) - Math.PI;
-    rotationAngle = rotationAngle < rotationAngle2 ? rotationAngle : rotationAngle2;
-    // Appliquez uniquement une petite étape de rotation si la rotation requise est plus grande que l'étape maximale autorisée
-    if (Math.abs(rotationAngle) > conf.MAXROTATIONSTEP) {
-        rotationAngle = conf.MAXROTATIONSTEP * Math.sign(rotationAngle);
-    } else {
-        triangle.isTurning = false; // Plus besoin de tourner
-    }
+    if (rotationAngle > Math.PI) rotationAngle -= 2 * Math.PI;
+    if (rotationAngle < -Math.PI) rotationAngle += 2 * Math.PI;
 
     // Appliquez la rotation à chaque point du triangle
     const newpoints = triangle.points.map(point => {
@@ -166,11 +159,11 @@ const reorientTriangle = (triangle : Triangle) : Triangle=> {
         };
     });
 
-    return  {
+    return {
         ...triangle,
         points: newpoints,
-        isTurning: triangle.isTurning
-    }
+        isTurning: Math.abs(rotationAngle) > conf.MAXROTATIONSTEP // Vérifiez si la rotation est toujours nécessaire
+    };
 }
 
 const moveOrTurnTriangles = (model: OurModel): OurModel => {
