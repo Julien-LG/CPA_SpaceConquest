@@ -108,11 +108,26 @@ export const clearAll = (view: ViewRender) => {
     view.ctx.clearRect(0, 0, view.canvas.width, view.canvas.height);
 }
 
+function addButton(view: ViewRender) {
+    // Crée un bouton pour recharger la page après la victoire
+    const reloadButton = document.createElement('button');
+    reloadButton.textContent = 'Rejouer';
+    reloadButton.style.position = 'absolute';
+    reloadButton.style.top = `${view.canvas.height / 2 + 50}px`;
+    reloadButton.style.left = `${view.canvas.width / 2 - 50}px`;
+    reloadButton.addEventListener('click', () => {
+        window.location.reload();
+    });
+    view.canvas.parentNode?.appendChild(reloadButton);
+}
+
 export const drawWin = (view: ViewRender) => {
     const { ctx } = view;
     ctx.fillStyle = 'white';
     ctx.font = '30px Arial';
-    ctx.fillText(`Vous avez gagné ! (^.^)`, view.canvas.width / 2 - 100, view.canvas.height / 2);
+    ctx.fillText(`Vous avez gagné ! (^.^)`, view.canvas.width / 2 - 100, view.canvas.height / 2);    
+
+    addButton(view);
 }
 
 export const drawLose = (view: ViewRender) => {
@@ -120,4 +135,6 @@ export const drawLose = (view: ViewRender) => {
     ctx.fillStyle = 'white';
     ctx.font = '30px Arial';
     ctx.fillText(`Vous avez perdu (T.T)`, view.canvas.width / 2 - 100, view.canvas.height / 2);
+
+    addButton(view);
 }
