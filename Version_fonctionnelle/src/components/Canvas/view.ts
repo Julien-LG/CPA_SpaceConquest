@@ -61,7 +61,6 @@ const drawRectangle = (ctx: CanvasRenderingContext2D, rectangle: Rectangle) => {
     ctx.fill();
 }
 
-
 const drawSelectionArea = (ctx: CanvasRenderingContext2D, model: OurModel) => {
     const { startSelec, endSelec } = model;
     if (startSelec && endSelec) {
@@ -74,9 +73,31 @@ const drawSelectionArea = (ctx: CanvasRenderingContext2D, model: OurModel) => {
     }
 }
 
+const drawGrid = (ctx: CanvasRenderingContext2D, model: OurModel) => {
+    const { grid } = model;
+    ctx.strokeStyle = 'grey';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= model.canvaswidth; i += 30) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, model.canvasheight);
+        ctx.stroke();
+        ctx.closePath();
+    }
+
+    for (let j = 0; j <= model.canvasheight; j += 30) {
+        ctx.beginPath();
+        ctx.moveTo(0, j);
+        ctx.lineTo(model.canvaswidth, j);
+        ctx.stroke();
+        ctx.closePath();
+    }
+}
+
 export const drawAll = (view: ViewRender, model: OurModel) => {
     const { ctx } = view;
     ctx.clearRect(0, 0, view.canvas.width, view.canvas.height);
+    drawGrid(ctx, model);
     model.triangles.forEach(triangle => drawTriangle(ctx, triangle));
     model.circles.forEach(circle => drawCircle(ctx, circle));
     model.rectangles.forEach(rectangle => drawRectangle(ctx, rectangle));

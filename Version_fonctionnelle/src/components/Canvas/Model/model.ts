@@ -128,7 +128,7 @@ export const selectTrianglesInArea = (model : OurModel) => {
     };
 }
 
-// Réoriente le triangle pour qu'il pointe vers la destination
+// Réoriente le triangle pour qu'il pointe petit à petit vers sa destination
 const reorientTriangle = (triangle : Triangle) : Triangle=> {
     const center = triangle.center; // Utilisez le centre précalculé pour la rotation
     const destination = triangle.destination;
@@ -145,6 +145,16 @@ const reorientTriangle = (triangle : Triangle) : Triangle=> {
     // Calculez l'angle de rotation nécessaire
     let rotationAngle = angleToDestination - angleCurrentTop;
 
+    // Normalisez l'angle de rotation dans l'intervalle [-π, π] (on cherche l'angle le plus petit ppour tourner le plus vite)
+    const rotationAngle2 = (rotationAngle + Math.PI) % (2 * Math.PI) - Math.PI;
+    rotationAngle = rotationAngle < rotationAngle2 ? rotationAngle : rotationAngle2;
+    // Appliquez uniquement une petite étape de rotation si la rotation requise est plus grande que l'étape maximale autorisée
+    if (Math.abs(rotationAngle) > conf.MAXROTATIONSTEP) {
+        rotationAngle = conf.MAXROTATIONSTEP * Math.sign(rotationAngle);
+    } else {
+        triangle.isTurning = false; // Plus besoin de tourner
+    }
+
     // Appliquez la rotation à chaque point du triangle
     const newpoints = triangle.points.map(point => {
         const dx = point.x - center.x;
@@ -159,7 +169,7 @@ const reorientTriangle = (triangle : Triangle) : Triangle=> {
     return  {
         ...triangle,
         points: newpoints,
-        isTurning: false
+        isTurning: triangle.isTurning
     }
 }
 
@@ -190,18 +200,15 @@ const moveOrTurnTriangles = (model: OurModel): OurModel => {
             };
 
             if (triangle.isTurning) {
-                console.log(`Turning triangle`, triangle);
                 triangle = reorientTriangle(triangle);
-                console.log(`Triangle after turning:`, triangle);
             }
             else {
                 const distance = Math.sqrt(dx * dx + dy * dy);
-                console.log("Moving");
                 //Mise à jour de la position du triangle
                 if (distance < 1) {
                     triangle.destination = null;  // Reset destination quand arriver
                 } else {
-                    const speed = 1;
+                    const speed = Math.min(conf.TRIANGLEMAXSPEED, distance);
                     const newPoints = triangle.points.map(point => {
                         return { 
                             x: point.x + Math.cos(angle) * speed, 
@@ -296,22 +303,6 @@ const moveOrTurnTriangles = (model: OurModel): OurModel => {
         triangles: newTriangles,
     };
 };
-
-// const turnTriangles = (model: OurModel): OurModel => {
-//     const newtriangles = model.triangles.map(triangle => {
-//         if (triangle.isTurning) {
-//             triangle = reorientTriangle(triangle);
-//             if (triangle.destination && triangle.path.length === 0) {
-//                 triangle.isTurning = false;
-//             }
-//         }
-//         return triangle;
-//     });
-//     return {
-//         ...model,
-//         triangles: newtriangles
-//     };
-// }
 
 export const setDestinationOfTriangles = (model : OurModel) : OurModel => {
     // Définit la destination et initie le mouvement pour les triangles sélectionnés
@@ -518,7 +509,7 @@ const generateCircles = (model : OurModel) : OurModel => {
 
 export const createGameTest = (height : number, width : number) => {
     let model = initModel(height, width);
-    model = generateTriangles(model, height, width, 1);
+    //model = generateTriangles(model, height, width, 1);
 
     model = addBigPlanet(model, { x: width-120 , y: 120 }, conf.PLAYERCOLOR);
     model = addBigPlanet(model, { x: width-120, y: height-120 }, conf.ENEMYCOLOR1);

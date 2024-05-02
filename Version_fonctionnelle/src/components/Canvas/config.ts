@@ -14,8 +14,9 @@ export const BIGPLANETRADIUS = 45;
 export const UNHABITEDPLANETCOLOR = 'grey';
 
 export const TRIANGLESIZE = 10;
-//export const TRIANGLEMAXSPEED = 2;
+export const TRIANGLEMAXSPEED = 1.2;
 //export const FRICTION = 0.98;
+export const MAXROTATIONSTEP = 0.08;
 
 export const CELLSIZE = 30;
 export const MAXTROOPSPERPLAYER = 300;

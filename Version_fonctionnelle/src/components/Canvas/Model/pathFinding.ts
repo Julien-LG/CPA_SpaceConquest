@@ -1,6 +1,7 @@
 import * as conf from './../config';
 import { Point, OurModel, Circle } from './model';
 
+const cellSize = conf.CELLSIZE;
 
 export type GridCell = {
     x: number;
@@ -34,7 +35,6 @@ const printGrid = (grid: GridCell[][]) => {
 // Crée une grille basée sur les dimensions du canvas et la taille des obstacles
 export const createGrid = (model: OurModel): GridCell[][] => {
     const grid: GridCell[][] = [];
-    const cellSize = conf.CELLSIZE;
     for (let y = 0; y < model.canvasheight; y += cellSize) {
         const row: GridCell[] = [];
         for (let x = 0; x < model.canvaswidth; x += cellSize) {
@@ -91,7 +91,19 @@ const cloneGrid = (originalGrid: GridCell[][]): GridCell[][] => {
 /*************************************************
  * Fonctions pour l'algorithme A* de pathfinding
 *************************************************/
-
+// Fonction pour convertir un point en coordonnées de cellule de grille
+const getCellFromPoint = (point: Point, grid: GridCell[][]): GridCell | null => {
+    const xIndex = Math.floor(point.x / cellSize);
+    const yIndex = Math.floor(point.y / cellSize);
+    if (xIndex >= 0 && xIndex < grid[0].length && yIndex >= 0 && yIndex < grid.length) {
+        return grid[yIndex][xIndex];
+    }
+    return null; // Retourne null si le point est hors des limites de la grille
+}
+// Fonction pour obtenir le point correspondant à une cellule de grille
+const getPointFromCell = (cell: GridCell): Point => {
+    return { x: cell.x * cellSize + cellSize / 2, y: cell.y * cellSize + cellSize / 2 };
+}
 // Reconstruire le chemin à partir de la cellule de fin jusqu'à la cellule de départ
 const reconstructPath = (endCell: GridCell, end : Point): Point[] => {
     let current = endCell;
@@ -106,22 +118,15 @@ const reconstructPath = (endCell: GridCell, end : Point): Point[] => {
         }
         //console.log(`Adding cell (${current.x}, ${current.y}) to path`);
         visited.add(current);
-        path.unshift({ x: current.center.x, y: current.center.y }); // Ajouter la position courante au début du chemin
+        const dest = getPointFromCell(current);
+        path.unshift(dest); // Ajouter la position courante au début du chemin
         current = current.parent; // Remonter vers la cellule parent
     }
-    path.unshift({ x: current.center.x, y: current.center.y }); // Ajouter la position de départ
+
+    path.unshift(getPointFromCell(current)); // Ajouter la position de départ
     return path; 
 }
 
-// Fonction pour convertir un point en coordonnées de cellule de grille
-const getCellFromPoint = (point: Point, cellSize: number, grid: GridCell[][]): GridCell | null => {
-    const xIndex = Math.floor(point.x / cellSize);
-    const yIndex = Math.floor(point.y / cellSize);
-    if (xIndex >= 0 && xIndex < grid[0].length && yIndex >= 0 && yIndex < grid.length) {
-        return grid[yIndex][xIndex];
-    }
-    return null; // Retourne null si le point est hors des limites de la grille
-}
 
 const getNeighbors = (current: GridCell, grid: GridCell[][]): GridCell[] => {
     const neighbors: GridCell[] = [];
@@ -152,8 +157,6 @@ const getNeighbors = (current: GridCell, grid: GridCell[][]): GridCell[] => {
 // Implémentation de l'algorithme de recherche de chemin (A*)
 export const findPath = (originalGrid : GridCell[][], start: Point, end: Point, circlesOfSameColor : Circle[]): Point[] => {
     // Vérifier si les coordonnées de départ ou de fin sont en dehors des limites de la grille
-
-    let cellSize = conf.CELLSIZE;
     let grid = cloneGrid(originalGrid);
 
     // Appliquer les planètes de la même couleur que les triangles comme obstacle à la grille
@@ -177,8 +180,8 @@ export const findPath = (originalGrid : GridCell[][], start: Point, end: Point, 
         }
     });
     //printGrid(grid);
-    const startCell = getCellFromPoint(start, cellSize, grid);
-    const endCell = getCellFromPoint(end, cellSize, grid);
+    const startCell = getCellFromPoint(start, grid);
+    const endCell = getCellFromPoint(end, grid);
 
     //console.log('Start Cell:', startCell);
     //console.log('End Cell:', endCell);
