@@ -76,6 +76,26 @@ export const createGrid = (model: OurModel): GridCell[][] => {
         }
     });
 
+    model.circles.forEach(circle => { 
+        const startX = Math.floor((circle.center.x - circle.radius) / cellSize);
+        const endX = Math.ceil((circle.center.x + circle.radius) / cellSize);
+        const startY = Math.floor((circle.center.y - circle.radius) / cellSize);
+        const endY = Math.ceil((circle.center.y + circle.radius) / cellSize);
+
+        for (let y = startY; y <= endY; y++) {
+            for (let x = startX; x <= endX; x++) {
+                if (y >= 0 && y < grid.length && x >= 0 && x < grid[y].length) {
+                    const cellCenterX = x * cellSize + cellSize / 2;
+                    const cellCenterY = y * cellSize + cellSize / 2;
+                    const distance = Math.sqrt((cellCenterX - circle.center.x) ** 2 + (cellCenterY - circle.center.y) ** 2);
+                    if (distance < circle.radius + (Math.sqrt(2) * cellSize / 2)) {  // Vérifier si la cellule touche le cercle
+                        grid[y][x].walkable = false;
+                    }
+                }
+            }
+        }
+    });
+
     //console.log(grid.map(row => row.map(cell => cell.walkable ? ' ' : 'X').join('')).join('\n'));
     printGrid(grid);
     return grid;
@@ -181,31 +201,31 @@ const getNeighbors = (current: GridCell, grid: GridCell[][]): GridCell[] => {
 
 
 // Implémentation de l'algorithme de recherche de chemin (A*)
-export const findPath = (originalGrid : GridCell[][], start: Point, end: Point, circlesOfSameColor : Circle[], isPlayer : boolean) : Point[] => {
+export const findPath = (originalGrid : GridCell[][], start: Point, target : Circle, isPlayer : boolean) : Point[] => {
     // Vérifier si les coordonnées de départ ou de fin sont en dehors des limites de la grille
     let grid = cloneGrid(originalGrid);
 
-    // Appliquer les planètes de la même couleur que les triangles comme obstacle à la grille
-    circlesOfSameColor.forEach(circle => { 
-        const startX = Math.floor((circle.center.x - circle.radius) / cellSize);
-        const endX = Math.ceil((circle.center.x + circle.radius) / cellSize);
-        const startY = Math.floor((circle.center.y - circle.radius) / cellSize);
-        const endY = Math.ceil((circle.center.y + circle.radius) / cellSize);
+    // Enlève la planète cible de la liste des obstacles
+    const startX = Math.floor((target.center.x - target.radius) / cellSize);
+    const endX = Math.ceil((target.center.x + target.radius) / cellSize);
+    const startY = Math.floor((target.center.y - target.radius) / cellSize);
+    const endY = Math.ceil((target.center.y + target.radius) / cellSize);
 
-        for (let y = startY; y <= endY; y++) {
-            for (let x = startX; x <= endX; x++) {
-                if (y >= 0 && y < grid.length && x >= 0 && x < grid[y].length) {
-                    const cellCenterX = x * cellSize + cellSize / 2;
-                    const cellCenterY = y * cellSize + cellSize / 2;
-                    const distance = Math.sqrt((cellCenterX - circle.center.x) ** 2 + (cellCenterY - circle.center.y) ** 2);
-                    if (distance < circle.radius + (Math.sqrt(2) * cellSize / 2)) {  // Vérifier si la cellule touche le cercle
-                        grid[y][x].walkable = false;
-                    }
+    for (let y = startY; y <= endY; y++) {
+        for (let x = startX; x <= endX; x++) {
+            if (y >= 0 && y < grid.length && x >= 0 && x < grid[y].length) {
+                const cellCenterX = x * cellSize + cellSize / 2;
+                const cellCenterY = y * cellSize + cellSize / 2;
+                const distance = Math.sqrt((cellCenterX - target.center.x) ** 2 + (cellCenterY - target.center.y) ** 2);
+                if (distance < target.radius + (Math.sqrt(2) * cellSize / 2)) {  // Vérifier si la cellule touche le cercle
+                    grid[y][x].walkable = true;
                 }
             }
         }
-    });
+    }
+
     //printGrid(grid);
+    const end = { x: target.center.x, y: target.center.y };
     const startCell = getCellFromPoint(start, grid);
     const endCell = getCellFromPoint(end, grid);
 

@@ -1,4 +1,4 @@
-import { OurModel, Point, selectTrianglesInArea} from './model';
+import { OurModel, Point, Circle, selectTrianglesInArea} from './model';
 import { findPath } from './pathFinding';
 import * as conf from './../config';
 
@@ -6,13 +6,36 @@ import * as conf from './../config';
 /*******************************************************************
      * Fonctions pour les événements
 *******************************************************************/
+const pointInCircle = (point : Point, circle : Circle) : boolean => {
+    return (point.x - circle.center.x) ** 2 + (point.y - circle.center.y) ** 2 < circle.radius ** 2;
+}
+const calculateDistance = (x1: number, y1: number, x2: number, y2: number): number => {
+    return ((x2 - x1) ** 2 + (y2 - y1) ** 2);
+}
+const findTarget = (model : OurModel, destination : Point) : Circle => {
+    // Trouve la planète la plus proche de la destination
+    const circles = model.circles;
+    let target = { 
+        center: { x: destination.x, y: destination.y },
+        radius: 0,
+        color: 'black',
+        hp: 0
+    } as Circle; //Cercle fictif pour stocker la destination et evité de transmettre plusieur valeur a findpath
+    circles.forEach(circle => {
+        if (pointInCircle(destination, circle)) target = circle;
+    });
+ 
+    return target;
+}
+
 const setPathSelected = (model : OurModel, destination : Point) : OurModel => {
     // Définit la destination et initie le mouvement pour les triangles sélectionnés
     const newtriangles = model.triangles.map(triangle => {
         if (triangle.selected) {
             const grid = model.grid;
             const circleOfPlayer = model.circles.filter(circle => circle.color === conf.PLAYERCOLOR);
-            const newPath = findPath(grid, { x: triangle.center.x, y: triangle.center.y }, destination, circleOfPlayer, true);
+            const target = findTarget(model, destination);
+            const newPath = findPath(grid, { x: triangle.center.x, y: triangle.center.y }, target, true);
             
             return {
                 ...triangle,

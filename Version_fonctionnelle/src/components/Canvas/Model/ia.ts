@@ -20,7 +20,7 @@ const calculateCentroid = (planets: Circle[]): Point => {
 };
 
 // Déploie les forces vers une destination spécifiée, en utilisant la moitié ou toutes les troupes.
-const deployForces = (model: OurModel, color: string, destination: Point, destination2?: Point) => {
+const deployForces = (model: OurModel, color: string, destination: Circle, destination2?: Circle) => {
     const triangles = model.triangles.filter(triangle => triangle.color === color && !triangle.destination);
     const circlesOfSameColor = model.circles.filter(circle => circle.color === color);
     
@@ -29,20 +29,20 @@ const deployForces = (model: OurModel, color: string, destination: Point, destin
         const selectedTriangles = triangles.slice(0, troopCount);
         selectedTriangles.forEach(triangle => {
             let grid = model.grid;
-            const path = findPath(grid, { x: triangle.center.x, y: triangle.center.y }, destination, circlesOfSameColor, false);
+            const path = findPath(grid, { x: triangle.center.x, y: triangle.center.y }, destination, false);
             triangle.path = path;
         });
         const selectedTriangles2 = triangles.slice(troopCount);
         selectedTriangles2.forEach(triangle => {
             let grid = model.grid;
-            const path = findPath(grid, { x: triangle.center.x, y: triangle.center.y }, destination2, circlesOfSameColor, false);
+            const path = findPath(grid, { x: triangle.center.x, y: triangle.center.y }, destination2, false);
             triangle.path = path;
         });
     }
     else {
         triangles.forEach(triangle => {
             let grid = model.grid;
-            const path = findPath(grid, { x: triangle.center.x, y: triangle.center.y }, destination, circlesOfSameColor, false);
+            const path = findPath(grid, { x: triangle.center.x, y: triangle.center.y }, destination, false);
             triangle.path = path;
         });
     }
@@ -157,17 +157,17 @@ export const directTrianglesToStrategicTarget = (model: OurModel, color: string)
 };
 
 // Cible la planète inhabitée la plus proche, optionnellement en utilisant toutes les troupes.
-const targetClosestPlanet = (model: OurModel, color: string, unhabitedPlanets: Circle[]): Point => {
+const targetClosestPlanet = (model: OurModel, color: string, unhabitedPlanets: Circle[]): Circle => {
     const centroid = calculateCentroid(model.circles.filter(c => c.color === color));
     const closestUnhabited = unhabitedPlanets.reduce((closest, planet) => {
         const distance = calculateDistance(centroid.x, centroid.y, planet.center.x, planet.center.y);
         return (distance < closest.distance) ? { planet, distance } : closest;
     }, { planet: unhabitedPlanets[0], distance: Infinity }).planet;
 
-    return { x: closestUnhabited.center.x, y: closestUnhabited.center.y };
+    return closestUnhabited;
 };
 // Cible la planète inhabitée la plus proche, optionnellement en utilisant toutes les troupes.
-const targetClosestANdWeakestEnemyPlanet = (model: OurModel, color: string, enemyPlanets: Circle[]): Point => {
+const targetClosestANdWeakestEnemyPlanet = (model: OurModel, color: string, enemyPlanets: Circle[]): Circle => {
     const centroid = calculateCentroid(model.circles.filter(c => c.color === color));
     // Réduction pour trouver la planète ennemie la plus faible et la plus proche en utilisant un score qui balance la distance et la santé.
     const closestAndWeakestEnemy = enemyPlanets.reduce((closest, planet) => {
@@ -177,7 +177,7 @@ const targetClosestANdWeakestEnemyPlanet = (model: OurModel, color: string, enem
         return (score < closest.score) ? { planet, score } : closest;
     }, { planet: enemyPlanets[0], score: Infinity }).planet;
 
-    return { x: closestAndWeakestEnemy.center.x, y: closestAndWeakestEnemy.center.y };
+    return closestAndWeakestEnemy;
 };
 
 
