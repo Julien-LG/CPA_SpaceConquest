@@ -113,8 +113,14 @@ function addButton(view: ViewRender) {
     const reloadButton = document.createElement('button');
     reloadButton.textContent = 'Rejouer';
     reloadButton.style.position = 'absolute';
+    reloadButton.style.backgroundColor = 'white';
+    reloadButton.style.border = 'none';
+    reloadButton.style.borderRadius = '10px';
+    reloadButton.style.width = '15%';
+    reloadButton.style.height = '8%';
+    reloadButton.style.fontSize = '16px';
     reloadButton.style.top = `${view.canvas.height / 2 + 50}px`;
-    reloadButton.style.left = `${view.canvas.width / 2 - 50}px`;
+    reloadButton.style.left = `${view.canvas.width / 2}px`;
     reloadButton.addEventListener('click', () => {
         window.location.reload();
     });
