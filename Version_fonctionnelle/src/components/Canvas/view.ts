@@ -6,10 +6,6 @@ const doSprites = true;
 const backgroundImage = new Image();
 backgroundImage.src = BACKGROUNDIMAGE;
 
-const planet = new Image();
-planet.src = "https://preview.redd.it/oixhape35id31.png?width=288&format=png&auto=webp&s=d97e53544bb9675cd0977fac1a6f115ff6a92411";
-
-
 export type ViewRender = {
     canvas: HTMLCanvasElement,
     ctx: CanvasRenderingContext2D,
@@ -49,9 +45,7 @@ const drawTriangle = (ctx: CanvasRenderingContext2D, triangle: Triangle) => {
 
 const drawCircle = (ctx: CanvasRenderingContext2D, circle: Circle) => {
     if (doSprites) {
-        const planet = new Image();
-        planet.src = circle.sprite;
-        ctx.drawImage(planet, circle.center.x-circle.radius, circle.center.y-circle.radius, circle.radius*2, circle.radius*2);
+        ctx.drawImage(circle.sprite, circle.center.x-circle.radius, circle.center.y-circle.radius, circle.radius*2, circle.radius*2);
         ctx.fillStyle = 'white';
         ctx.font = '14px Arial';
         ctx.fillText(`HP: ${circle.hp}`, circle.center.x - 20, circle.center.y + 5);
