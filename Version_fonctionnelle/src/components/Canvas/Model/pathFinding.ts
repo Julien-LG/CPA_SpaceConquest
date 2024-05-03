@@ -47,7 +47,6 @@ export const createGrid = (model: OurModel): GridCell[][] => {
                 distToEnd : Infinity,
                 f : Infinity,
             });
-            //console.log('Création de la cellule à', x, y, 'avec x et y', Math.floor(x / cellSize), Math.floor(y / cellSize));
         }
         grid.push(row);
     }
@@ -55,13 +54,18 @@ export const createGrid = (model: OurModel): GridCell[][] => {
     
     // Appliquer les obstacles rectangulaires à la grille
     model.rectangles.forEach(rect => {
-        const triangleSize = conf.TRIANGLESIZE;
+        //const triangleSize = conf.TRIANGLESIZE;
         
         //On prend en compte la taille des triangles pour les obstacles pour évité les collisions avec les angles des triangles
-        const startX = (rect.x- triangleSize) <= 0 ? Math.floor(rect.x / cellSize): Math.floor((rect.x- triangleSize)  / cellSize);
-        const endX =  (rect.x + rect.width + triangleSize) >= model.canvaswidth ? Math.ceil((rect.x + rect.width) / cellSize): Math.ceil((rect.x + rect.width + triangleSize) / cellSize);
-        const startY = (rect.y - triangleSize) <= 0 ? Math.floor(rect.y / cellSize) : Math.floor((rect.y - triangleSize) / cellSize);
-        const endY = (rect.y + rect.height + triangleSize) >= model.canvasheight ?  Math.ceil((rect.y + rect.height) / cellSize) : Math.ceil((rect.y + rect.height + triangleSize) / cellSize);
+        // const startX = (rect.x- triangleSize) <= 0 ? Math.floor(rect.x / cellSize): Math.floor((rect.x- triangleSize)  / cellSize);
+        // const endX =  (rect.x + rect.width + triangleSize) >= model.canvaswidth ? Math.ceil((rect.x + rect.width) / cellSize): Math.ceil((rect.x + rect.width + triangleSize) / cellSize);
+        // const startY = (rect.y - triangleSize) <= 0 ? Math.floor(rect.y / cellSize) : Math.floor((rect.y - triangleSize) / cellSize);
+        // const endY = (rect.y + rect.height + triangleSize) >= model.canvasheight ?  Math.ceil((rect.y + rect.height) / cellSize) : Math.ceil((rect.y + rect.height + triangleSize) / cellSize);
+
+        const startX = Math.floor(rect.x / cellSize);
+        const endX = Math.ceil((rect.x + rect.width) / cellSize);
+        const startY = Math.floor(rect.y / cellSize) ;
+        const endY = Math.ceil((rect.y + rect.height) / cellSize);
 
         for (let y = startY; y < endY; y++) {
             for (let x = startX; x < endX; x++) {
@@ -177,7 +181,7 @@ const getNeighbors = (current: GridCell, grid: GridCell[][]): GridCell[] => {
 
 
 // Implémentation de l'algorithme de recherche de chemin (A*)
-export const findPath = (originalGrid : GridCell[][], start: Point, end: Point, circlesOfSameColor : Circle[]): Point[] => {
+export const findPath = (originalGrid : GridCell[][], start: Point, end: Point, circlesOfSameColor : Circle[], isPlayer : boolean) : Point[] => {
     // Vérifier si les coordonnées de départ ou de fin sont en dehors des limites de la grille
     let grid = cloneGrid(originalGrid);
 
@@ -208,7 +212,7 @@ export const findPath = (originalGrid : GridCell[][], start: Point, end: Point, 
     //console.log('Start Cell:', startCell);
     //console.log('End Cell:', endCell);
 
-    if (!startCell || !endCell || !startCell.walkable || !endCell.walkable) {
+    if (!startCell || !endCell || (!startCell.walkable || (!endCell.walkable && !isPlayer))) {
         console.log('Les points de départ ou d\'arrivée ne sont pas valides ou ne sont pas traversables.');
         return [];
     }
@@ -216,7 +220,6 @@ export const findPath = (originalGrid : GridCell[][], start: Point, end: Point, 
     let openSet = [startCell];
     let closedSet = new Set<GridCell>();
 
-    //startCell.walkable = true; // Marquer la cellule de départ comme traversable
     startCell.cost = 0; // Définir le coût initial de la cellule de départ à 0
 
     while (openSet.length > 0) {
@@ -230,9 +233,14 @@ export const findPath = (originalGrid : GridCell[][], start: Point, end: Point, 
 
         let neighbors = getNeighbors(current, grid);
         neighbors.forEach(neighbor => {
-            if (!neighbor.walkable || closedSet.has(neighbor)) return;
+            if ((!neighbor.walkable && neighbor !== endCell) || closedSet.has(neighbor)) return;
+            const isDiag = (neighbor.x !== current.x && neighbor.y !== current.y);
             const isDiagPossible = (grid[neighbor.y ][current.x].walkable && grid[current.y][neighbor.x].walkable);
-            let tempCost = ((neighbor.x !== current.x && neighbor.y !== current.y) && (isDiagPossible)) ? current.cost +1.414 : current.cost +1;
+
+            if (isDiag && !isDiagPossible) return; // Ne pas autoriser les déplacements diagonaux si les cellules adjacentes ne sont pas traversables
+
+            let tempCost = isDiag ? current.cost + 1.414 : current.cost + 1;
+
             if (tempCost < neighbor.cost) {
                 neighbor.cost = tempCost;
                 neighbor.parent = current;

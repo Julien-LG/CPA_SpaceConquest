@@ -1,4 +1,5 @@
 import {Triangle, Circle, Rectangle, OurModel} from './Model/model';
+import { CELLSIZE } from './config';
 
 export type ViewRender = {
     canvas: HTMLCanvasElement,
@@ -77,7 +78,7 @@ const drawGrid = (ctx: CanvasRenderingContext2D, model: OurModel) => {
     const { grid } = model;
     ctx.strokeStyle = 'grey';
     ctx.lineWidth = 0.5;
-    for (let i = 0; i <= model.canvaswidth; i += 30) {
+    for (let i = 0; i <= model.canvaswidth; i += CELLSIZE) {
         ctx.beginPath();
         ctx.moveTo(i, 0);
         ctx.lineTo(i, model.canvasheight);
@@ -85,7 +86,7 @@ const drawGrid = (ctx: CanvasRenderingContext2D, model: OurModel) => {
         ctx.closePath();
     }
 
-    for (let j = 0; j <= model.canvasheight; j += 30) {
+    for (let j = 0; j <= model.canvasheight; j += CELLSIZE) {
         ctx.beginPath();
         ctx.moveTo(0, j);
         ctx.lineTo(model.canvaswidth, j);

@@ -26,29 +26,23 @@ const deployForces = (model: OurModel, color: string, destination: Point, destin
     
     if (destination2) {
         const troopCount = Math.ceil(triangles.length / 2);
-        // console.log('troopCount:', troopCount);
-        // console.log('length:', triangles.length);
-        //console.log('destination:', destination);
-        //console.log('destination2:', destination2);
         const selectedTriangles = triangles.slice(0, troopCount);
         selectedTriangles.forEach(triangle => {
             let grid = model.grid;
-            console.log('destination:', destination);
-            const path = findPath(grid, { x: triangle.center.x, y: triangle.center.y }, destination, circlesOfSameColor);
+            const path = findPath(grid, { x: triangle.center.x, y: triangle.center.y }, destination, circlesOfSameColor, false);
             triangle.path = path;
         });
         const selectedTriangles2 = triangles.slice(troopCount);
         selectedTriangles2.forEach(triangle => {
             let grid = model.grid;
-            console.log('destination2:', destination2);
-            const path = findPath(grid, { x: triangle.center.x, y: triangle.center.y }, destination2, circlesOfSameColor);
+            const path = findPath(grid, { x: triangle.center.x, y: triangle.center.y }, destination2, circlesOfSameColor, false);
             triangle.path = path;
         });
     }
     else {
         triangles.forEach(triangle => {
             let grid = model.grid;
-            const path = findPath(grid, { x: triangle.center.x, y: triangle.center.y }, destination, circlesOfSameColor);
+            const path = findPath(grid, { x: triangle.center.x, y: triangle.center.y }, destination, circlesOfSameColor, false);
             triangle.path = path;
         });
     }
@@ -157,8 +151,7 @@ export const directTrianglesToStrategicTarget = (model: OurModel, color: string)
         // Divise les forces si plus de 4 planètes sont contrôlées.
         const dest1 = targetClosestPlanet(model, color, targetPlanet);
         const dest2 = targetClosestANdWeakestEnemyPlanet(model, color, enemyPlanets);
-        console.log('dest1:', dest1);
-        console.log('dest2:', dest2);
+
         return deployForces(model, color, dest1, dest2); 
     }
 };

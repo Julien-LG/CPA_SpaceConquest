@@ -12,7 +12,7 @@ const setPathSelected = (model : OurModel, destination : Point) : OurModel => {
         if (triangle.selected) {
             const grid = model.grid;
             const circleOfPlayer = model.circles.filter(circle => circle.color === conf.PLAYERCOLOR);
-            const newPath = findPath(grid, { x: triangle.center.x, y: triangle.center.y }, destination, circleOfPlayer);
+            const newPath = findPath(grid, { x: triangle.center.x, y: triangle.center.y }, destination, circleOfPlayer, true);
             
             return {
                 ...triangle,
@@ -112,14 +112,14 @@ export const executeEvents = (model : OurModel) : OurModel => {
         switch (event.type) {
             case 'click':
                 if(event.detail === 2){
-                    console.log("double left click")
+                    //console.log("double left click")
                     return ondoubleclick(acc);
                 }else {
-                    console.log("left click");
+                    //console.log("left click");
                     return onleftclick(acc, { x: event.offsetX, y: event.offsetY });
                 }
             case 'contextmenu':
-                console.log("right click");
+                //console.log("right click");
                 return onrightclick(acc);
             case 'mousedown':
                 return onmousedown(acc, { x: event.offsetX, y: event.offsetY });

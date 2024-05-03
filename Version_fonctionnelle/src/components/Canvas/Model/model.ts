@@ -231,6 +231,7 @@ const moveOrTurnTriangles = (model: OurModel): OurModel => {
             // Check collisions avec les cercles
             model.circles.forEach(circle => {
                 if (!hasCollided && coll.checkCollisionWithCircle(triangle, circle)) {
+                    console.log("Collision avec cercle");
                     if (triangleColor !== circle.color) {
                         circle.hp -= 1; 
                         if (circle.hp <= 0) {
@@ -268,6 +269,7 @@ const moveOrTurnTriangles = (model: OurModel): OurModel => {
             if (!hasCollided) {
                 model.rectangles.forEach(rectangle => {
                     if (coll.checkCollisionWithRectangle(triangle, rectangle)) {
+                        console.log("Collision avec mur");
                         // Calculez une nouvelle destination qui est garantie d'être hors du rectangle.
                         // Réinitialise la destination du triangle en le faisant reculer de 30 pixels dans la direction opposée
                         triangle.destination = {
@@ -282,7 +284,7 @@ const moveOrTurnTriangles = (model: OurModel): OurModel => {
             }
             // Vérifie les collisions avec les bords si aucune collision n'a encore eu lieu
             if (!hasCollided && coll.checkCollisionWithBorders(triangle, canvasWidth, canvasHeight)) {
-                
+                console.log("Collision avec bord");
                 // Réinitialise la destination du triangle en le faisant reculer de 30 pixels dans la direction opposée
                 triangle.destination = {
                     x: triangle.center.x - velocityNormalized.x * bounceDistance,
