@@ -13,9 +13,11 @@ const setPathSelected = (model : OurModel, destination : Point) : OurModel => {
             const grid = model.grid;
             const circleOfPlayer = model.circles.filter(circle => circle.color === conf.PLAYERCOLOR);
             const newPath = findPath(grid, { x: triangle.center.x, y: triangle.center.y }, destination, circleOfPlayer);
+            
             return {
                 ...triangle,
-                path: newPath
+                path: newPath.length > 0  ? newPath : triangle.path,
+                destination : newPath.length > 0  ? null : triangle.destination
             };
         }
         return triangle;

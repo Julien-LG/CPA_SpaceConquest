@@ -102,29 +102,51 @@ const getCellFromPoint = (point: Point, grid: GridCell[][]): GridCell | null => 
 }
 // Fonction pour obtenir le point correspondant à une cellule de grille
 const getPointFromCell = (cell: GridCell): Point => {
-    return { x: cell.x * cellSize + cellSize / 2, y: cell.y * cellSize + cellSize / 2 };
+    // Calculer le centre de la cellule en ajoutant la moitié de la taille de la cellule aux coordonnées multipliées par la taille de la cellule
+    return { 
+        x: cell.x * cellSize , 
+        y: cell.y * cellSize  
+    };
 }
 // Reconstruire le chemin à partir de la cellule de fin jusqu'à la cellule de départ
-const reconstructPath = (endCell: GridCell, end : Point): Point[] => {
+const reconstructPath = (endCell: GridCell, end: Point): Point[] => {
     let current = endCell;
-    const path: Point[] = [end];
+    const path: Point[] = [];  
+    //const path: Point[] = [end];  // Commence avec la position finale réelle
     const visited = new Set();
+    let lastDirection = null;
 
-    //console.log(`current.parent: ${current.parent}`);
-    while (current.parent) {
-        if (visited.has(current)) {
-            console.log('Loop detected in path reconstruction');
-            break;
-        }
-        //console.log(`Adding cell (${current.x}, ${current.y}) to path`);
-        visited.add(current);
-        const dest = getPointFromCell(current);
-        path.unshift(dest); // Ajouter la position courante au début du chemin
-        current = current.parent; // Remonter vers la cellule parent
+    // Ajouter une fonction pour obtenir la direction entre deux cellules
+    const getDirection = (current : GridCell, parent : GridCell) => {
+        if (current.x === parent.x) return 'vertical';
+        if (current.y === parent.y) return 'horizontal';
     }
 
-    path.unshift(getPointFromCell(current)); // Ajouter la position de départ
-    return path; 
+    while (current.parent) {
+        if (visited.has(current)) {
+            console.log('Boucle détectée dans la reconstruction du chemin');
+            break;
+        }
+        visited.add(current);
+
+        const direction = getDirection(current, current.parent);
+
+        // Ajouter la cellule au chemin seulement si la direction change
+        if (direction !== lastDirection) {
+            const dest = current.center;
+            path.unshift(dest);  // Ajouter la position courante au début du chemin
+        }
+
+        lastDirection = direction;  // Mise à jour de la dernière direction
+        current = current.parent;  // Remonter vers la cellule parent
+    }
+
+    // S'assurer d'ajouter la position de départ
+    if (path[0] !== current.center) {
+        path.unshift(current.center);
+    }
+
+    return path;
 }
 
 
@@ -222,23 +244,3 @@ export const findPath = (originalGrid : GridCell[][], start: Point, end: Point, 
     console.log('No path found after loop.');
     return []; // Aucun chemin trouvé si la boucle se termine sans retourner de chemin
 }
-
-
-
-// Fonction principale pour rechercher un chemin pour chaque triangle de la couleur donnée en évitant les obstacles (murs et planètes)
-// export const pathfinding = (model: OurModel, destination : Point, color : string): OurModel => {
-//     const grid = model.grid;
-//     const newTriangles = model.triangles.map(triangle => {
-//         if (!triangle.destination && triangle.color === color) {
-//             //console.log('---------------------------Checking triangle:', triangle);
-//             const newPath = findPath(grid, triangle.center, destination, model.circles, color);
-//             // if (newPath.length === 0) {
-//             //     console.log('No new path found');
-//             // }
-//             // console.log('New path found:', newPath);
-//             return { ...triangle, path : newPath};
-//         }
-//         return triangle;
-//     });
-//     return { ...model, triangles: newTriangles};
-// };

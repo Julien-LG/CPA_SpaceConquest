@@ -128,28 +128,37 @@ export const selectTrianglesInArea = (model : OurModel) => {
     };
 }
 
-// Réoriente le triangle pour qu'il pointe petit à petit vers sa destination
-const reorientTriangle = (triangle : Triangle) : Triangle=> {
-    const center = triangle.center; // Utilisez le centre précalculé pour la rotation
+// Réoriente le triangle pour qu'il pointe progressivement vers sa destination
+const reorientTriangle = (triangle : Triangle) : Triangle => {
+    const center = triangle.center; // Utilise le centre précalculé pour la rotation
     const destination = triangle.destination;
 
-    // Si aucune destination n'est définie, retournez le triangle tel quel théoriquement impossible mais vérification obligatoire
-    if (!destination) return triangle;
+    // Si aucune destination n'est définie, retourne le triangle sans modification
+    if (!destination) return triangle; //n'est pas sensé arriver dans cete fonctions
 
-    // Calculez l'angle de direction vers la destination
+    // Calcule l'angle de direction vers la destination
     const angleToDestination = Math.atan2(destination.y - center.y, destination.x - center.x);
 
-    // Calculez l'angle actuel du sommet supérieur par rapport au centre
+    // Calcule l'angle actuel du sommet supérieur par rapport au centre
     const currentTop = triangle.points[0]; // Le sommet supérieur est toujours le premier point
     const angleCurrentTop = Math.atan2(currentTop.y - center.y, currentTop.x - center.x);
 
-    // Calculez l'angle de rotation nécessaire
+    // Calcule l'angle de rotation nécessaire
     let rotationAngle = angleToDestination - angleCurrentTop;
-    if (rotationAngle > Math.PI) rotationAngle -= 2 * Math.PI;
-    if (rotationAngle < -Math.PI) rotationAngle += 2 * Math.PI;
 
-    // Appliquez la rotation à chaque point du triangle
-    const newpoints = triangle.points.map(point => {
+    // Normalise l'angle de rotation dans l'intervalle [-π, π]
+    rotationAngle = (rotationAngle + Math.PI) % (2 * Math.PI) - Math.PI;
+
+    // Applique uniquement une petite étape de rotation si la rotation requise est plus grande que l'étape maximale autorisée
+    if (Math.abs(rotationAngle) > conf.MAXROTATIONSTEP) {
+        rotationAngle = conf.MAXROTATIONSTEP * Math.sign(rotationAngle);
+        triangle.isTurning = true; // Continue de tourner
+    } else {
+        triangle.isTurning = false; // Plus besoin de tourner
+    }
+
+    // Applique la rotation à chaque point du triangle
+    const newPoints = triangle.points.map(point => {
         const dx = point.x - center.x;
         const dy = point.y - center.y;
 
@@ -161,9 +170,9 @@ const reorientTriangle = (triangle : Triangle) : Triangle=> {
 
     return {
         ...triangle,
-        points: newpoints,
-        isTurning: Math.abs(rotationAngle) > conf.MAXROTATIONSTEP // Vérifiez si la rotation est toujours nécessaire
-    };
+        points: newPoints,
+        isTurning: triangle.isTurning
+    }
 }
 
 const moveOrTurnTriangles = (model: OurModel): OurModel => {
@@ -199,7 +208,7 @@ const moveOrTurnTriangles = (model: OurModel): OurModel => {
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 //Mise à jour de la position du triangle
                 if (distance < 1) {
-                    triangle.destination = null;  // Reset destination quand arriver
+                    triangle.destination = null;
                 } else {
                     const speed = Math.min(conf.TRIANGLEMAXSPEED, distance);
                     const newPoints = triangle.points.map(point => {
@@ -396,15 +405,8 @@ export const regenerateHP = (model : OurModel) : OurModel => {
         return circle;
     });
     return { 
-        triangles: model.triangles, 
+        ...model,
         circles: newCircles, 
-        rectangles: model.rectangles,
-        canvasheight : model.canvasheight,
-        canvaswidth : model.canvaswidth,
-        startSelec: model.startSelec, 
-        endSelec: model.endSelec, 
-        events: model.events,
-        grid : model.grid
     };
 }
 
