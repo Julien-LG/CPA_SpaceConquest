@@ -220,13 +220,29 @@ const moveOrTurnTriangles = (model: OurModel): OurModel => {
 
             const triangleColor = triangle.color;
 
-            // Check collisions avec les cercles
+            // Check collisions avec les cercles TODO : Image in CIRCLE
             model.circles.forEach(circle => {
                 if (!hasCollided && coll.checkCollisionWithCircle(triangle, circle)) {
                     if (triangleColor !== circle.color) {
                         circle.hp -= 1; 
                         if (circle.hp <= 0) {
-                            circle.color = triangleColor;  
+                            circle.color = triangleColor;                            
+                            switch (triangle.color) {
+                                case conf.PLAYERCOLOR:
+                                    circle.sprite = conf.PLAYERPLANETSPRITE;
+                                    break;
+                                case conf.ENEMYCOLOR1:
+                                    circle.sprite = conf.ENEMYPLANETSPRITE1;
+                                    break;
+                                case conf.ENEMYCOLOR2:
+                                    circle.sprite = conf.ENEMYPLANETSPRITE2;
+                                    break;
+                                case conf.ENEMYCOLOR3:
+                                    circle.sprite = conf.ENEMYPLANETSPRITE3;
+                                    break;
+                                default:
+                                    break;
+                            }
                             circle.hp = circle.maxHP;  // Reset hp
                         }
                         trianglesToRemove.add(triangle);  // Marquage du triangle pour suppression
