@@ -149,6 +149,19 @@ const reorientTriangle = (triangle : Triangle) : Triangle=> {
     if (rotationAngle > Math.PI) rotationAngle -= 2 * Math.PI;
     if (rotationAngle < -Math.PI) rotationAngle += 2 * Math.PI;
 
+    /*
+    // Normalisez l'angle de rotation dans l'intervalle [-π, π] (on cherche l'angle le plus petit ppour tourner le plus vite)
+    const rotationAngle2 = (rotationAngle + Math.PI) % (2 * Math.PI) - Math.PI;
+    rotationAngle = rotationAngle < rotationAngle2 ? rotationAngle : rotationAngle2;
+    // Appliquez uniquement une petite étape de rotation si la rotation requise est plus grande que l'étape maximale autorisée
+    */
+    if (Math.abs(rotationAngle) > conf.MAXROTATIONSTEP) {
+        rotationAngle = conf.MAXROTATIONSTEP * Math.sign(rotationAngle);
+    } else {
+        triangle.isTurning = false; // Plus besoin de tourner
+    }
+    
+
     // Appliquez la rotation à chaque point du triangle
     const newpoints = triangle.points.map(point => {
         const dx = point.x - center.x;
@@ -163,7 +176,8 @@ const reorientTriangle = (triangle : Triangle) : Triangle=> {
     return {
         ...triangle,
         points: newpoints,
-        isTurning: Math.abs(rotationAngle) > conf.MAXROTATIONSTEP // Vérifiez si la rotation est toujours nécessaire
+        // isTurning: Math.abs(rotationAngle) > conf.MAXROTATIONSTEP // Vérifiez si la rotation est toujours nécessaire
+        isTurning: triangle.isTurning
     };
 }
 
