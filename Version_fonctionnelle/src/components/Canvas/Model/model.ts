@@ -164,14 +164,16 @@ const reorientTriangle = (triangle : Triangle) : Triangle => {
 
     // Calcule l'angle de rotation nécessaire
     let rotationAngle = angleToDestination - angleCurrentTop;
+    if (rotationAngle > Math.PI) rotationAngle -= 2 * Math.PI;
+    if (rotationAngle < -Math.PI) rotationAngle += 2 * Math.PI;
 
     // Normalise l'angle de rotation dans l'intervalle [-π, π]
-    rotationAngle = (rotationAngle + Math.PI) % (2 * Math.PI) - Math.PI;
+    // rotationAngle = (rotationAngle + Math.PI) % (2 * Math.PI) - Math.PI;
 
     // Applique uniquement une petite étape de rotation si la rotation requise est plus grande que l'étape maximale autorisée
     if (Math.abs(rotationAngle) > conf.MAXROTATIONSTEP) {
         rotationAngle = conf.MAXROTATIONSTEP * Math.sign(rotationAngle);
-        triangle.isTurning = true; // Continue de tourner
+        // triangle.isTurning = true; // Continue de tourner
     } else {
         triangle.isTurning = false; // Plus besoin de tourner
     }
