@@ -16,8 +16,8 @@ export const TRIANGLESIZE = 10;
 export const TRIANGLEMAXSPEED = 1.2;
 export const MAXROTATIONSTEP = 0.08;
 
-export const SEPARATION_FORCE = 6;
-export const SEPARATION_DISTANCE = 10;
+export const SEPARATION_FORCE = 8;
+export const SEPARATION_DISTANCE = 50;
 
 
 export const CELLSIZE = 30;

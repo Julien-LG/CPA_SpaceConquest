@@ -2,8 +2,6 @@ import * as coll from "./collision";
 import * as conf from "../config";
 import { executeEvents } from "./eventFunctions";
 import { GridCell, createGrid} from './pathFinding'; // Import the pathfinding function
-import { sep } from "path";
-
 
 export type Point = { x: number, y: number };
 export type Triangle = { //troupe
@@ -51,78 +49,65 @@ export const initModel = (height : number, width : number): OurModel => {
 // Fonctions pour creer et ajouter des triangles et cercles dans le modele
 const addTriangle = (model: OurModel, triangle: Triangle): OurModel => {
     return {
+        ...model,
         triangles: model.triangles.concat(triangle), 
-        circles: model.circles, 
-        rectangles: model.rectangles,
-        canvasheight : model.canvasheight,
-        canvaswidth : model.canvaswidth, 
-        startSelec: model.startSelec, 
-        endSelec: model.endSelec,
-        events: model.events,
-        grid : model.grid
     };
 }
 
 const addCircle = (model: OurModel, circle: Circle): OurModel => {
     return { 
-        triangles: model.triangles, 
+        ...model,
         circles: model.circles.concat(circle), 
-        rectangles: model.rectangles,
-        canvasheight : model.canvasheight,
-        canvaswidth : model.canvaswidth,
-        startSelec: model.startSelec, 
-        endSelec: model.endSelec,
-        events: model.events,
-        grid : model.grid
     };
 }
 
 const addRectangle = (model: OurModel, rectangle: Rectangle): OurModel => {
     return { 
-        triangles: model.triangles, 
-        circles: model.circles, 
+        ...model, 
         rectangles: model.rectangles.concat(rectangle),
-        canvasheight : model.canvasheight,
-        canvaswidth : model.canvaswidth,
-        startSelec: model.startSelec, 
-        endSelec: model.endSelec,
-        events: model.events,
-        grid : model.grid
     };
 }
 
 /*******************************************************************
      * Fonctions de séléction et déplacement des triangles
 *******************************************************************/
-const calculateSeparationForce = (triangle : Triangle, neighbors : Triangle[], separationDistance : number) => {
+const calculateSeparationForce = (triangle: Triangle, neighbors: Triangle[], separationDistance: number) => {
     let force = { x: 0, y: 0 };
     let count = 0;
+
+    // Parcourez chaque voisin pour calculer la force de séparation
     neighbors.forEach(neighbor => {
-        const distance = Math.sqrt((triangle.center.x - neighbor.center.x) ** 2 + (triangle.center.y - neighbor.center.y) ** 2);
-        if (distance > 0 && distance < separationDistance) { // Considère uniquement les voisins proches
-            // Calcule la force d'éloignement
-            let awayX = triangle.center.x - neighbor.center.x;
-            let awayY = triangle.center.y - neighbor.center.y;
-            let length = Math.sqrt(awayX * awayX + awayY * awayY);
-            awayX /= length;
-            awayY /= length;
-            awayX /= distance; // les voisins plus proches ont un effet plus fort
-            awayY /= distance; 
-            force.x += awayX;
-            force.y += awayY;
+        const dx = triangle.center.x - neighbor.center.x;
+        const dy = triangle.center.y - neighbor.center.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Appliquez la force uniquement si le voisin est suffisamment proche mais non superposé
+        if (distance > 0 && distance < separationDistance) {
+            // Normalise la direction de la force pour s'éloigner du voisin
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const awayX = dx / length;
+            const awayY = dy / length;
+
+            // Plus le voisin est proche, plus la force est grande
+            force.x += awayX / distance;
+            force.y += awayY / distance;
             count++;
         }
     });
+
+    // Si des voisins proches ont été trouvés, normalisez la force résultante
     if (count > 0) {
         force.x /= count;
         force.y /= count;
-        // Normalize the force to a fixed magnitude
-        let magnitude = Math.sqrt(force.x * force.x + force.y * force.y);
+
+        // Normaliser la force pour qu'elle ait une magnitude fixe
+        const magnitude = Math.sqrt(force.x * force.x + force.y * force.y);
         if (magnitude > 0) {
             force.x = (force.x / magnitude) * conf.SEPARATION_FORCE;
             force.y = (force.y / magnitude) * conf.SEPARATION_FORCE;
         }
     }
+
     return force;
 };
 
@@ -233,7 +218,8 @@ const moveOrTurnTriangles = (model: OurModel): OurModel => {
 
     let newTriangles = model.triangles.map(triangle => {
         let hasCollided = false; // Indicateur de collision
-        let neighbors = model.triangles.filter(t => t !== triangle); //On considère tous les autres triangles comme voisins
+        let neighbors = model.triangles.filter(t => 
+            t !== triangle); //On considère tous les autres triangles comme voisins
 
         if (triangle.destination) {
             const separationForce = calculateSeparationForce(triangle, neighbors, separationDistance);
@@ -286,6 +272,18 @@ const moveOrTurnTriangles = (model: OurModel): OurModel => {
                 }
             });
 
+            // Vérifie collisions entre triangles si pas encore de collision
+            if (!hasCollided) {
+                for (let j = 0; j < model.triangles.length; j++) {
+                    const triangle2 = model.triangles[j];
+                    if (triangle !== triangle2 && triangle.color !== triangle2.color && coll.checkCollisionWithTriangle(triangle, triangle2)) {
+                        trianglesToRemove.add(triangle);  // Mark this triangle for removal
+                        trianglesToRemove.add(triangle2);  // Mark the other triangle for removal
+                        hasCollided = true;  // Set the collision flag
+                        break;  // Stop checking once a collision is found
+                    }
+                }
+            }
             model.rectangles.forEach(rectangle => {
                 if (!hasCollided && coll.checkCollisionWithRectangle(triangle, rectangle)) {
                     console.log("Collision avec un mur");
