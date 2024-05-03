@@ -2,6 +2,7 @@ import * as coll from "./collision";
 import * as conf from "../config";
 import { executeEvents } from "./eventFunctions";
 import { GridCell, createGrid} from './pathFinding'; // Import the pathfinding function
+import { sep } from "path";
 
 
 export type Point = { x: number, y: number };
@@ -93,6 +94,39 @@ const addRectangle = (model: OurModel, rectangle: Rectangle): OurModel => {
 /*******************************************************************
      * Fonctions de séléction et déplacement des triangles
 *******************************************************************/
+const calculateSeparationForce = (triangle : Triangle, neighbors : Triangle[], separationDistance : number) => {
+    let force = { x: 0, y: 0 };
+    let count = 0;
+    neighbors.forEach(neighbor => {
+        const distance = Math.sqrt((triangle.center.x - neighbor.center.x) ** 2 + (triangle.center.y - neighbor.center.y) ** 2);
+        if (distance > 0 && distance < separationDistance) { // Considère uniquement les voisins proches
+            // Calcule la force d'éloignement
+            let awayX = triangle.center.x - neighbor.center.x;
+            let awayY = triangle.center.y - neighbor.center.y;
+            let length = Math.sqrt(awayX * awayX + awayY * awayY);
+            awayX /= length;
+            awayY /= length;
+            awayX /= distance; // les voisins plus proches ont un effet plus fort
+            awayY /= distance; 
+            force.x += awayX;
+            force.y += awayY;
+            count++;
+        }
+    });
+    if (count > 0) {
+        force.x /= count;
+        force.y /= count;
+        // Normalize the force to a fixed magnitude
+        let magnitude = Math.sqrt(force.x * force.x + force.y * force.y);
+        if (magnitude > 0) {
+            force.x = (force.x / magnitude) * conf.SEPARATION_FORCE;
+            force.y = (force.y / magnitude) * conf.SEPARATION_FORCE;
+        }
+    }
+    return force;
+};
+
+
 export const selectTrianglesInArea = (model : OurModel) => {
     // Sélectionne les triangles dans la zone spécifiée par l'utilisateur
     if (!model.startSelec || !model.endSelec) return model;
@@ -175,131 +209,101 @@ const reorientTriangle = (triangle : Triangle) : Triangle => {
     }
 }
 
+// Fonction pour faire correctement rebondir le triangle
+const reboundTriangle = (triangle : Triangle, velocityNormalized : Point, bounceDistance : number) => {
+    // Calculer la direction du rebond
+    triangle.destination = {
+        x: triangle.center.x - velocityNormalized.x * bounceDistance,
+        y: triangle.center.y - velocityNormalized.y * bounceDistance
+    };
+    triangle.path = []; // Réinitialiser le chemin du triangle
+    triangle.isTurning = true; // Assurer que le triangle continue de s'orienter correctement après le rebond
+
+    // Réorienter immédiatement vers la nouvelle direction
+    reorientTriangle(triangle);
+}
+
+// Fonctions pour le mouvement des triangles (décision + action)
 const moveOrTurnTriangles = (model: OurModel): OurModel => {
-    const trianglesToRemove = new Set<Triangle>();  //Set contennant les triangles à supprimer
+    const trianglesToRemove = new Set<Triangle>(); // Ensemble contenant les triangles à supprimer
     const canvasHeight = model.canvasheight;
     const canvasWidth = model.canvaswidth;
     const bounceDistance = conf.TRIANGLESIZE + conf.CELLSIZE; // Distance de rebond pour les triangles
+    const separationDistance = conf.SEPARATION_DISTANCE;
 
-    let newTriangles = model.triangles.map((triangle) => {
-        let hasCollided = false; // marqueur de collision
+    let newTriangles = model.triangles.map(triangle => {
+        let hasCollided = false; // Indicateur de collision
+        let neighbors = model.triangles.filter(t => t !== triangle); //On considère tous les autres triangles comme voisins
 
-        if (triangle.destination) {  // Ignore les triangles sans destination(immobiles)
-            // Calcule le vecteur de vitesse pour le triangle, en direction de sa destination
-            const dx = triangle.destination.x - triangle.center.x;
-            const dy = triangle.destination.y - triangle.center.y;
-            
-            const angle = Math.atan2(dy, dx);
-            const velocity = {
-                x: triangle.destination.x - triangle.center.x,
-                y: triangle.destination.y - triangle.center.y
-            };
-            const velocityMagnitude = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
-            // Normalise le vecteur de vitesse pour obtenir la direction
+        if (triangle.destination) {
+            const separationForce = calculateSeparationForce(triangle, neighbors, separationDistance);
+
+            let dx = triangle.destination.x - triangle.center.x + separationForce.x;
+            let dy = triangle.destination.y - triangle.center.y + separationForce.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
             const velocityNormalized = {
-                x: velocity.x / velocityMagnitude,
-                y: velocity.y / velocityMagnitude
+                x: dx / distance,
+                y: dy / distance
             };
 
+            // Le triangle tourne vers sa destination
             if (triangle.isTurning) {
-                triangle = reorientTriangle(triangle);
-            }
-            else {
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                //Mise à jour de la position du triangle
-                if (distance < 1) {
-                    triangle.destination = null;
-                } else {
-                    const speed = Math.min(conf.TRIANGLEMAXSPEED, distance);
-                    const newPoints = triangle.points.map(point => {
-                        return { 
-                            x: point.x + Math.cos(angle) * speed, 
-                            y: point.y + Math.sin(angle) * speed 
-                        }
-                    });
-                    const newCenter = { 
-                        x: triangle.center.x + Math.cos(angle) * speed, 
-                        y: triangle.center.y + Math.sin(angle) * speed 
-                    };
-                    triangle.points = newPoints;
-                    triangle.center = newCenter;
-                }
+                triangle = reorientTriangle(triangle); // Réoriente progressivement le triangle
             }
 
-            const triangleColor = triangle.color;
+            // Si la distance est infime, arrête le mouvement vers la destination
+            if (distance < 1) {
+                triangle.destination = null; // Arrête le triangle s'il est assez proche de la destination
+                triangle.isTurning = false; // Arrête la rotation du triangle
+            } else {
+                // Déplace le triangle vers sa destination s'il n'est pas trop proche
+                const speed = Math.min(conf.TRIANGLEMAXSPEED, distance);
+                triangle.points = triangle.points.map(point => ({
+                    x: point.x + velocityNormalized.x * speed,
+                    y: point.y + velocityNormalized.y * speed
+                }));
+                triangle.center = {
+                    x: triangle.center.x + velocityNormalized.x * speed,
+                    y: triangle.center.y + velocityNormalized.y * speed
+                };
+            }
 
-            // Check collisions avec les cercles
+            // Gestion des collisions
             model.circles.forEach(circle => {
                 if (!hasCollided && coll.checkCollisionWithCircle(triangle, circle)) {
-                    console.log("Collision avec cercle");
-                    if (triangleColor !== circle.color) {
-                        circle.hp -= 1; 
+                    console.log("Collision avec un cercle");
+                    if (triangle.color !== circle.color) {
+                        circle.hp -= 1;
                         if (circle.hp <= 0) {
-                            circle.color = triangleColor;  
-                            circle.hp = circle.maxHP;  // Reset hp
+                            circle.color = triangle.color; // Change la couleur du cercle
+                            circle.hp = circle.maxHP; // Réinitialise la santé du cercle
                         }
-                        trianglesToRemove.add(triangle);  // Marquage du triangle pour suppression
+                        trianglesToRemove.add(triangle);
+                    } else {
+                        reboundTriangle(triangle, velocityNormalized, bounceDistance);
                     }
-                    else { //Si le cercle est de la même couleur que le triangle, il rebondis dessus
-                        triangle.destination = {
-                            x: triangle.center.x - velocityNormalized.x * bounceDistance,
-                            y: triangle.center.y - velocityNormalized.y * bounceDistance
-                        };
-                        triangle.path = [];  // Reset le path (arrête le mouvement du triangle)
-                        triangle.isTurning = false;  // Stop la rotation du triangle en cas de collision
-
-                    }
-                    hasCollided = true;  // Set  marqueur de collision à true
+                    hasCollided = true; // Marque la collision
                 }
             });
 
-            // Vérifie collisions entre triangles si pas encore de collision
-            if (!hasCollided) {
-                for (let j = 0; j < model.triangles.length; j++) {
-                    const triangle2 = model.triangles[j];
-                    if (triangle !== triangle2 && triangleColor !== triangle2.color && coll.checkCollisionWithTriangle(triangle, triangle2)) {
-                        trianglesToRemove.add(triangle);  // Mark this triangle for removal
-                        trianglesToRemove.add(triangle2);  // Mark the other triangle for removal
-                        hasCollided = true;  // Set the collision flag
-                        break;  // Stop checking once a collision is found
-                    }
+            model.rectangles.forEach(rectangle => {
+                if (!hasCollided && coll.checkCollisionWithRectangle(triangle, rectangle)) {
+                    console.log("Collision avec un mur");
+                    reboundTriangle(triangle, velocityNormalized, bounceDistance); // Fait rebondir le triangle
+                    hasCollided = true; // Marque la collision
                 }
-            }
-            // Vérifie les collisions avec les murs
-            if (!hasCollided) {
-                model.rectangles.forEach(rectangle => {
-                    if (coll.checkCollisionWithRectangle(triangle, rectangle)) {
-                        console.log("Collision avec mur");
-                        // Calculez une nouvelle destination qui est garantie d'être hors du rectangle.
-                        // Réinitialise la destination du triangle en le faisant reculer de 30 pixels dans la direction opposée
-                        triangle.destination = {
-                            x: triangle.center.x - velocityNormalized.x * bounceDistance,
-                            y: triangle.center.y - velocityNormalized.y * bounceDistance
-                        };
-                        triangle.path = [];  // Reset le path (arrête le mouvement du triangle)
-                        triangle.isTurning = false;  // Stop la rotation du triangle en cas de collision
-                        hasCollided = true;  // Marque la collision
-                    }
-                });
-            }
-            // Vérifie les collisions avec les bords si aucune collision n'a encore eu lieu
-            if (!hasCollided && coll.checkCollisionWithBorders(triangle, canvasWidth, canvasHeight)) {
-                console.log("Collision avec bord");
-                // Réinitialise la destination du triangle en le faisant reculer de 30 pixels dans la direction opposée
-                triangle.destination = {
-                    x: triangle.center.x - velocityNormalized.x * bounceDistance,
-                    y: triangle.center.y - velocityNormalized.y * bounceDistance
-                };
-                triangle.path = [];  // Reset le path (arrête le mouvement du triangle)
-                triangle.isTurning = false;  // Stop la rotation du triangle en cas de collision
-                hasCollided = true;  // Marque la collision
-            }
+            });
 
+            if (!hasCollided && coll.checkCollisionWithBorders(triangle, canvasWidth, canvasHeight)) {
+                console.log("Collision avec les bords");
+                reboundTriangle(triangle, velocityNormalized, bounceDistance); // Fait rebondir le triangle
+                hasCollided = true; // Marque la collision
+            }
         }
         return triangle;
     });
 
-    // Filter out triangles marked for removal
+    // Filtre les triangles marqués pour être supprimés
     newTriangles = newTriangles.filter(triangle => !trianglesToRemove.has(triangle));
 
     return {
@@ -308,6 +312,7 @@ const moveOrTurnTriangles = (model: OurModel): OurModel => {
     };
 };
 
+// Fonction permettant l'avancement des étapes de déplacement des triangles
 export const setDestinationOfTriangles = (model : OurModel) : OurModel => {
     // Définit la destination et initie le mouvement pour les triangles sélectionnés
     const newtriangles = model.triangles.map(triangle => {
@@ -330,6 +335,10 @@ export const setDestinationOfTriangles = (model : OurModel) : OurModel => {
     };
 }
 
+/*******************************************************************
+     *  Fonctions de gestion du jeu
+*******************************************************************/
+
 export const winGame = (model : OurModel) : boolean => {
     const colors = model.circles.map(circle => circle.color);
     return colors.every(color => color === conf.PLAYERCOLOR || color === conf.UNHABITEDPLANETCOLOR);
@@ -339,7 +348,6 @@ export const loseGame = (model : OurModel) : boolean => {
     const colors = model.circles.map(circle => circle.color);
     return colors.every(color => color !== conf.PLAYERCOLOR);
 }
-
 
 /*******************************************************************
      *  Fonction de génération de triangles(troupes) autour des cercles

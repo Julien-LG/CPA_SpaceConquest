@@ -1,4 +1,5 @@
 import { Triangle, Circle, Rectangle, Point } from './model';
+type Line = { x1: number, y1: number, x2: number, y2: number };
 /*******************************************************************
      * Fonctions de collision
 *******************************************************************/
@@ -35,7 +36,7 @@ const isPointInsideTriangle = (point : Point, triangle : Triangle) : boolean => 
     const area2 = Math.abs((v2.x - px) * (v3.y - py) - (v2.y - py) * (v3.x - px));
     const area3 = Math.abs((v3.x - px) * (v1.y - py) - (v3.y - py) * (v1.x - px));
 
-    return area1 + area2 + area3 == areaOrig;
+    return area1 + area2 + area3 === areaOrig;
 }
 
 
@@ -83,16 +84,63 @@ export const checkCollisionWithTriangle = (triangle1 : Triangle, triangle2 : Tri
     return false; // Aucune collision détectée
 }
 
+
+// Fonction pour vérifier si deux segments de ligne se croisent
+const lineIntersects = (line1 : Line, line2 : Line) => {
+    const det = (line1.x2 - line1.x1) * (line2.y2 - line2.y1) - (line2.x2 - line2.x1) * (line1.y2 - line1.y1);
+    if (det === 0) {
+        return false; // Les lignes sont parallèles
+    } else {
+        const lambda = ((line2.y2 - line2.y1) * (line2.x2 - line1.x1) + (line2.x1 - line2.x2) * (line2.y2 - line1.y1)) / det;
+        const gamma = ((line1.y1 - line1.y2) * (line2.x2 - line1.x1) + (line1.x2 - line1.x1) * (line2.y2 - line1.y1)) / det;
+        return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+    }
+}
+
 // Vérifie la collision entre un triangle et un rectangle(mur)
-export const checkCollisionWithRectangle = (triangle : Triangle, rectangles : Rectangle) => {
+export const checkCollisionWithRectangle = (triangle: Triangle, rectangle: Rectangle) => {
+    // Ajuste les limites du rectangle pour la détection de collision
+    const rect = {
+        x: rectangle.x + 1,
+        y: rectangle.y + 1,
+        x2: rectangle.x + 1 + rectangle.width,
+        y2: rectangle.y + 1 + rectangle.height
+    };
+
+    // Vérifie si chaque point du triangle se trouve à l'intérieur du rectangle
     for (let point of triangle.points) {
-        if (point.x >= rectangles.x+1 && point.x <= rectangles.x+1 + rectangles.width 
-            && point.y >= rectangles.y+1 && point.y <= rectangles.y+1 + rectangles.height) {
-            return true; // Collision détectée avec un mur (asteroides)
+        if (point.x >= rect.x && point.x <= rect.x2 && point.y >= rect.y && point.y <= rect.y2) {
+            return true; // Le point est à l'intérieur du rectangle
         }
     }
+
+
+    // Vérifie les intersections des arêtes avec les limites du rectangle
+    const edges = [
+        { x1: triangle.points[0].x, y1: triangle.points[0].y, x2: triangle.points[1].x, y2: triangle.points[1].y },
+        { x1: triangle.points[1].x, y1: triangle.points[1].y, x2: triangle.points[2].x, y2: triangle.points[2].y },
+        { x1: triangle.points[2].x, y1: triangle.points[2].y, x2: triangle.points[0].x, y2: triangle.points[0].y }
+    ];
+
+    const rectangleEdges = [
+        { x1: rect.x, y1: rect.y, x2: rect.x2, y2: rect.y }, // Haut
+        { x1: rect.x2, y1: rect.y, x2: rect.x2, y2: rect.y2 }, // Droite
+        { x1: rect.x2, y1: rect.y2, x2: rect.x, y2: rect.y2 }, // Bas
+        { x1: rect.x, y1: rect.y2, x2: rect.x, y2: rect.y } // Gauche
+    ];
+
+    // Vérifie chaque arête du triangle contre chaque arête du rectangle
+    for (let edge of edges) {
+        for (let rectEdge of rectangleEdges) {
+            if (lineIntersects(edge, rectEdge)) {
+                return true; // Intersection d'arête détectée
+            }
+        }
+    }
+
     return false; // Aucune collision détectée
 }
+
 
 // Vérifie la collision entre un triangle et les bords du canvas
 export const checkCollisionWithBorders = (triangle : Triangle, canvasWidth : number, canvasHeight : number) => {
