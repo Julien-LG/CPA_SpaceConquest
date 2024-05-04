@@ -13,7 +13,8 @@ export type Triangle = { //troupe
     selected: boolean, 
     destination: Point | null,
     path : Point[],
-    isTurning : boolean
+    isTurning : boolean,
+    angle : number
 };
 export type Circle = { //planete
     center: Point,
@@ -160,7 +161,8 @@ const reorientTriangle = (triangle : Triangle) : Triangle=> {
     } else {
         triangle.isTurning = false; // Plus besoin de tourner
     }
-    
+    // On stocke le nouvel angle de rotation du sprite
+    triangle.angle = angleCurrentTop+rotationAngle+Math.PI/2;
 
     // Appliquez la rotation à chaque point du triangle
     const newpoints = triangle.points.map(point => {
@@ -387,7 +389,8 @@ const generateTriangleNearCircle = (model: OurModel, circle: Circle): OurModel =
         selected : false, 
         destination : null,
         path : [],
-        isTurning : false
+        isTurning : false,
+        angle : 0
     };
 
     return addTriangle(model, triangle);
@@ -507,7 +510,8 @@ const generateTriangles = (model : OurModel, height : number, width : number, nu
             selected : false, 
             destination : null,
             path : [],
-            isTurning : false
+            isTurning : false,
+            angle : 0
         };
         model = addTriangle(model, triangle);
     }
