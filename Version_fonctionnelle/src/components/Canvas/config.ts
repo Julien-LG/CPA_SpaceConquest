@@ -16,12 +16,12 @@ export const TRIANGLESIZE = 10;
 export const TRIANGLEMAXSPEED = 1.2;
 export const MAXROTATIONSTEP = 0.08;
 
-export const SEPARATION_FORCE = 8;
-export const SEPARATION_DISTANCE = 50;
+export const SEPARATION_FORCE = 0; // Force de séparation très faible car fais actuellement beuguer certaine collision
+export const SEPARATION_DISTANCE = 0;
 
 export const CELLSIZE = 30;
 
-export const MAXTROOPSPERPLAYER = 300;
+//export const MAXTROOPSPERPLAYER = 300;
 
 // export const BACKGROUNDIMAGE = "https://cdn.pixabay.com/photo/2017/08/30/01/05/milky-way-2695569_1280.jpg";
 export const BACKGROUNDIMAGE = "background2.png";

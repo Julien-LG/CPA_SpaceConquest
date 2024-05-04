@@ -265,11 +265,11 @@ const moveOrTurnTriangles = (model: OurModel): OurModel => {
             // Gestion des collisions
             model.circles.forEach(circle => {
                 if (!hasCollided && coll.checkCollisionWithCircle(triangle, circle)) {
-                    console.log("Collision avec un cercle");
+                    //console.log("Collision avec un cercle");
                     if (triangle.color !== circle.color) {
                         circle.hp -= 1;
                         if (circle.hp <= 0) {
-                            circle.color = triangleColor; // Change la couleur du cercle      
+                            circle.color = triangle.color; // Change la couleur du cercle      
                             const sprite = new Image();                    
                             switch (triangle.color) {
                                 case conf.PLAYERCOLOR:
@@ -312,14 +312,14 @@ const moveOrTurnTriangles = (model: OurModel): OurModel => {
             }
             model.rectangles.forEach(rectangle => {
                 if (!hasCollided && coll.checkCollisionWithRectangle(triangle, rectangle)) {
-                    console.log("Collision avec un mur");
+                    //console.log("Collision avec un mur");
                     reboundTriangle(triangle, velocityNormalized, bounceDistance); // Fait rebondir le triangle
                     hasCollided = true; // Marque la collision
                 }
             });
 
             if (!hasCollided && coll.checkCollisionWithBorders(triangle, canvasWidth, canvasHeight)) {
-                console.log("Collision avec les bords");
+                //console.log("Collision avec les bords");
                 reboundTriangle(triangle, velocityNormalized, bounceDistance); // Fait rebondir le triangle
                 hasCollided = true; // Marque la collision
             }
@@ -377,7 +377,7 @@ export const loseGame = (model : OurModel) : boolean => {
      *  Fonction de génération de triangles(troupes) autour des cercles
 *******************************************************************/
 const generateTriangleNearCircle = (model: OurModel, circle: Circle): OurModel => {
-    const distToCircle = circle.radius+ 40; // Distance from the circle where the triangle will be generated
+    const distToCircle = circle.radius+ conf.CELLSIZE + conf.TRIANGLESIZE; // Distance from the circle where the triangle will be generated
     const angle = Math.random() * Math.PI * 2; // Random angle for triangle placement
 
     const x = circle.center.x + Math.cos(angle) * distToCircle;
@@ -602,8 +602,8 @@ export const createGameTest = (height : number, width : number) => {
 
     model = addRectangle(model, { x: midx-50, y: 0, width: 100, height: midy-150, color: 'lightgrey' });
     model = addRectangle(model, { x: midx-50, y: midy+150, width:100, height: midy-150, color: 'lightgrey' });
-    model = addRectangle(model, { x: 0, y: midy-25, width: midx-500, height: 50, color: 'lightgrey' });
-    model = addRectangle(model, { x: midx+500, y: midy-25, width: midx-500, height: 50, color: 'lightgrey' });
+    model = addRectangle(model, { x: 0, y: midy-25, width: midx-450, height: 50, color: 'lightgrey' });
+    model = addRectangle(model, { x: midx+450, y: midy-25, width: midx-450, height: 50, color: 'lightgrey' });
 
     model = addRectangle(model, { x: 525, y: midy-100, width: 50, height: 200, color: 'lightgrey' });
     model = addRectangle(model, { x: width-575, y: midy-100, width: 50, height: 200, color: 'lightgrey' });
