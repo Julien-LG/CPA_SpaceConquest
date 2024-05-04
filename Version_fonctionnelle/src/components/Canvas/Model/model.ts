@@ -12,12 +12,14 @@ export type Triangle = { //troupe
     selected: boolean, 
     destination: Point | null,
     path : Point[],
-    isTurning : boolean
+    isTurning : boolean,
+    angle : number
 };
 export type Circle = { //planete
     center: Point,
     radius: number, 
     color: string, 
+    sprite: HTMLImageElement,
     hp : number,
     maxHP : number
 };
@@ -178,8 +180,12 @@ const reorientTriangle = (triangle : Triangle) : Triangle => {
         triangle.isTurning = false; // Plus besoin de tourner
     }
 
+    // On stock le nouvel angle de rotation du sprite
+    triangle.angle = angleCurrentTop+rotationAngle+Math.PI/2;
+
     // Applique la rotation à chaque point du triangle
     const newPoints = triangle.points.map(point => {
+
         const dx = point.x - center.x;
         const dy = point.y - center.y;
 
@@ -263,8 +269,26 @@ const moveOrTurnTriangles = (model: OurModel): OurModel => {
                     if (triangle.color !== circle.color) {
                         circle.hp -= 1;
                         if (circle.hp <= 0) {
-                            circle.color = triangle.color; // Change la couleur du cercle
-                            circle.hp = circle.maxHP; // Réinitialise la santé du cercle
+                            circle.color = triangleColor; // Change la couleur du cercle      
+                            const sprite = new Image();                    
+                            switch (triangle.color) {
+                                case conf.PLAYERCOLOR:
+                                    sprite.src = conf.PLAYERPLANETSPRITE;
+                                    break;
+                                case conf.ENEMYCOLOR1:
+                                    sprite.src = conf.ENEMYPLANETSPRITE1;
+                                    break;
+                                case conf.ENEMYCOLOR2:
+                                    sprite.src = conf.ENEMYPLANETSPRITE2;
+                                    break;
+                                case conf.ENEMYCOLOR3:
+                                    sprite.src = conf.ENEMYPLANETSPRITE3;
+                                    break;
+                                default:
+                                    break;
+                            }
+                            circle.sprite = sprite; // Change le sprite du cercle
+                            circle.hp = circle.maxHP;  // Réinitialise la santé du cercle
                         }
                         trianglesToRemove.add(triangle);
                     } else {
@@ -374,7 +398,8 @@ const generateTriangleNearCircle = (model: OurModel, circle: Circle): OurModel =
         selected : false, 
         destination : null,
         path : [],
-        isTurning : false
+        isTurning : false,
+        angle : 0
     };
 
     return addTriangle(model, triangle);
@@ -433,30 +458,33 @@ export const updateModel = (model : OurModel) : OurModel => {
 /*******************************************************************
      * Fonctions pour creer des planètes
 *******************************************************************/
-const addSmallPlanet = (model : OurModel, point : Point, color : string) : OurModel => {
+const addSmallPlanet = (model : OurModel, point : Point, color : string, sprite : HTMLImageElement) : OurModel => {
     const radius = conf.SMALLPLANETRADIUS;
     const center = point;
     const colorP = color;
+    const spriteP = sprite;
     const hp = conf.SMALLPLANETLIFE;
-    const circle : Circle = { center: center, radius: radius, color: colorP, hp: hp, maxHP: hp};
+    const circle : Circle = { center: center, radius: radius, color: colorP, sprite: spriteP, hp: hp, maxHP: hp};
     return addCircle(model, circle);
 }
 
-const addMediumPlanet = (model : OurModel, point : Point, color : string) : OurModel => {
+const addMediumPlanet = (model : OurModel, point : Point, color : string, sprite : HTMLImageElement) : OurModel => {
     const radius = conf.MEDIUMPLANETRADIUS;
     const center = point;
     const colorP = color;
+    const spriteP = sprite;
     const hp = conf.MEDIUMPLANETLIFE;
-    const circle : Circle = { center: center, radius: radius, color: colorP, hp: hp, maxHP: hp};
+    const circle : Circle = { center: center, radius: radius, color: colorP, sprite: spriteP, hp: hp, maxHP: hp};
     return addCircle(model, circle);
 }
 
-const addBigPlanet = (model : OurModel, point : Point, color : string) : OurModel => {
+const addBigPlanet = (model : OurModel, point : Point, color : string, sprite : HTMLImageElement) : OurModel => {
     const radius = conf.BIGPLANETRADIUS;
     const center = point;
     const colorP = color;
+    const spriteP = sprite;
     const hp = conf.BIGPLANETLIFE;
-    const circle : Circle = { center: center, radius: radius, color: colorP, hp: hp, maxHP: hp};
+    const circle : Circle = { center: center, radius: radius, color: colorP, sprite: spriteP, hp: hp, maxHP: hp};
     return addCircle(model, circle);
 }
 
@@ -484,7 +512,8 @@ const generateTriangles = (model : OurModel, height : number, width : number, nu
             selected : false, 
             destination : null,
             path : [],
-            isTurning : false
+            isTurning : false,
+            angle : 0
         };
         model = addTriangle(model, triangle);
     }
@@ -496,8 +525,10 @@ const generateCircles = (model : OurModel) : OurModel => {
     const radius = conf.MEDIUMPLANETRADIUS;
     const center = { x: x, y: y };
     const color = conf.ENEMYCOLOR1;
+    const sprite = new Image();
+    sprite.src = conf.ENEMYPLANETSPRITE1;
     const hp = conf.BIGPLANETLIFE;
-    const circle : Circle = { center: center, radius: radius, color: color, hp: hp, maxHP: hp};
+    const circle : Circle = { center: center, radius: radius, color: color, sprite: sprite, hp: hp, maxHP: hp};
     model = addCircle(model, circle);
     
     const x2 = 300;
@@ -505,8 +536,10 @@ const generateCircles = (model : OurModel) : OurModel => {
     const radius2 = conf.BIGPLANETRADIUS;
     const center2 = { x: x2, y: y2 };
     const color2 = conf.PLAYERCOLOR;
+    const sprite2 = new Image();
+    sprite.src = conf.PLAYERPLANETSPRITE;
     const hp2 = conf.BIGPLANETLIFE;
-    const circle2 : Circle = { center: center2, radius: radius2, color: color2, hp: hp2, maxHP: hp2};
+    const circle2 : Circle = { center: center2, radius: radius2, color: color2, sprite: sprite2, hp: hp2, maxHP: hp2};
     model = addCircle(model, circle2);
 
     return model;
@@ -515,47 +548,57 @@ const generateCircles = (model : OurModel) : OurModel => {
 export const createGameTest = (height : number, width : number) => {
     let model = initModel(height, width);
     //model = generateTriangles(model, height, width, 1);
+    const sprite1 = new Image();
+    const sprite2 = new Image();
+    const sprite3 = new Image();
+    const sprite4 = new Image();
+    const sprite5 = new Image();
+    sprite1.src = conf.PLAYERPLANETSPRITE;
+    sprite2.src = conf.ENEMYPLANETSPRITE1;
+    sprite3.src = conf.ENEMYPLANETSPRITE2;
+    sprite4.src = conf.ENEMYPLANETSPRITE3;
+    sprite5.src = conf.UNHABITEDPLANETSPRITE;
 
-    model = addBigPlanet(model, { x: width-120 , y: 120 }, conf.PLAYERCOLOR);
-    model = addBigPlanet(model, { x: width-120, y: height-120 }, conf.ENEMYCOLOR1);
-    model = addBigPlanet(model, { x: 120, y: 120 }, conf.ENEMYCOLOR2);
-    model = addBigPlanet(model, { x: 120, y: height-120 }, conf.ENEMYCOLOR3);
+    model = addBigPlanet(model, { x: width-120 , y: 120 }, conf.PLAYERCOLOR, sprite1);
+    model = addBigPlanet(model, { x: width-120, y: height-120 }, conf.ENEMYCOLOR1, sprite2);
+    model = addBigPlanet(model, { x: 120, y: 120 }, conf.ENEMYCOLOR2, sprite3);
+    model = addBigPlanet(model, { x: 120, y: height-120 }, conf.ENEMYCOLOR3, sprite4);
 
-    model = addMediumPlanet(model, { x: width-250 , y: 250 }, conf.PLAYERCOLOR);
-    model = addMediumPlanet(model, { x: width-250, y: height-250 }, conf.ENEMYCOLOR1);
-    model = addMediumPlanet(model, { x: 250, y: 250 }, conf.ENEMYCOLOR2);
-    model = addMediumPlanet(model, { x: 250, y: height-250 }, conf.ENEMYCOLOR3);
+    model = addMediumPlanet(model, { x: width-250 , y: 250 }, conf.PLAYERCOLOR, sprite1);
+    model = addMediumPlanet(model, { x: width-250, y: height-250 }, conf.ENEMYCOLOR1, sprite2);
+    model = addMediumPlanet(model, { x: 250, y: 250 }, conf.ENEMYCOLOR2, sprite3);
+    model = addMediumPlanet(model, { x: 250, y: height-250 }, conf.ENEMYCOLOR3, sprite4);
 
-    model = addMediumPlanet(model, { x: width-120 , y: 300 }, conf.UNHABITEDPLANETCOLOR);
-    model = addMediumPlanet(model, { x: width-120, y: height-300 }, conf.UNHABITEDPLANETCOLOR);
-    model = addMediumPlanet(model, { x: 120, y: 300 }, conf.UNHABITEDPLANETCOLOR);
-    model = addMediumPlanet(model, { x: 120, y: height-300 }, conf.UNHABITEDPLANETCOLOR);
+    model = addMediumPlanet(model, { x: width-120 , y: 300 }, conf.UNHABITEDPLANETCOLOR, sprite5);
+    model = addMediumPlanet(model, { x: width-120, y: height-300 }, conf.UNHABITEDPLANETCOLOR, sprite5);
+    model = addMediumPlanet(model, { x: 120, y: 300 }, conf.UNHABITEDPLANETCOLOR, sprite5);
+    model = addMediumPlanet(model, { x: 120, y: height-300 }, conf.UNHABITEDPLANETCOLOR, sprite5);
 
-    model = addMediumPlanet(model, { x: width-300 , y: 100 }, conf.UNHABITEDPLANETCOLOR);
-    model = addMediumPlanet(model, { x: width-300, y: height-100 }, conf.UNHABITEDPLANETCOLOR);
-    model = addMediumPlanet(model, { x: 300, y: 100 }, conf.UNHABITEDPLANETCOLOR);
-    model = addMediumPlanet(model, { x: 300, y: height-100 }, conf.UNHABITEDPLANETCOLOR);
+    model = addMediumPlanet(model, { x: width-300 , y: 100 }, conf.UNHABITEDPLANETCOLOR, sprite5);
+    model = addMediumPlanet(model, { x: width-300, y: height-100 }, conf.UNHABITEDPLANETCOLOR, sprite5);
+    model = addMediumPlanet(model, { x: 300, y: 100 }, conf.UNHABITEDPLANETCOLOR, sprite5);
+    model = addMediumPlanet(model, { x: 300, y: height-100 }, conf.UNHABITEDPLANETCOLOR, sprite5);
 
-    model = addSmallPlanet(model, { x: width-500 , y: 100 }, conf.UNHABITEDPLANETCOLOR);
-    model = addSmallPlanet(model, { x: width-500, y: height-100 }, conf.UNHABITEDPLANETCOLOR);
-    model = addSmallPlanet(model, { x: 500, y: 100 }, conf.UNHABITEDPLANETCOLOR);
-    model = addSmallPlanet(model, { x: 500, y: height-100 }, conf.UNHABITEDPLANETCOLOR);
+    model = addSmallPlanet(model, { x: width-500 , y: 100 }, conf.UNHABITEDPLANETCOLOR, sprite5);
+    model = addSmallPlanet(model, { x: width-500, y: height-100 }, conf.UNHABITEDPLANETCOLOR, sprite5);
+    model = addSmallPlanet(model, { x: 500, y: 100 }, conf.UNHABITEDPLANETCOLOR, sprite5);
+    model = addSmallPlanet(model, { x: 500, y: height-100 }, conf.UNHABITEDPLANETCOLOR, sprite5);
 
-    model = addSmallPlanet(model, { x: width-425 , y: 300 }, conf.UNHABITEDPLANETCOLOR);
-    model = addSmallPlanet(model, { x: width-425, y: height-300 }, conf.UNHABITEDPLANETCOLOR);
-    model = addSmallPlanet(model, { x: 425, y: 300 }, conf.UNHABITEDPLANETCOLOR);
-    model = addSmallPlanet(model, { x: 425, y: height-300 }, conf.UNHABITEDPLANETCOLOR);
+    model = addSmallPlanet(model, { x: width-425 , y: 300 }, conf.UNHABITEDPLANETCOLOR, sprite5);
+    model = addSmallPlanet(model, { x: width-425, y: height-300 }, conf.UNHABITEDPLANETCOLOR, sprite5);
+    model = addSmallPlanet(model, { x: 425, y: 300 }, conf.UNHABITEDPLANETCOLOR, sprite5);
+    model = addSmallPlanet(model, { x: 425, y: height-300 }, conf.UNHABITEDPLANETCOLOR, sprite5);
 
 
     const midx = width/2;
     const midy = height/2;
-    model = addSmallPlanet(model, { x: midx-120, y: 550 }, conf.UNHABITEDPLANETCOLOR);
-    model = addSmallPlanet(model, { x: midx+120, y: 550 }, conf.UNHABITEDPLANETCOLOR);
-    model = addSmallPlanet(model, { x: midx+120, y: height-550 }, conf.UNHABITEDPLANETCOLOR);
-    model = addSmallPlanet(model, { x: midx-120, y: height-550 }, conf.UNHABITEDPLANETCOLOR);
+    model = addSmallPlanet(model, { x: midx-120, y: 550 }, conf.UNHABITEDPLANETCOLOR, sprite5);
+    model = addSmallPlanet(model, { x: midx+120, y: 550 }, conf.UNHABITEDPLANETCOLOR, sprite5);
+    model = addSmallPlanet(model, { x: midx+120, y: height-550 }, conf.UNHABITEDPLANETCOLOR, sprite5);
+    model = addSmallPlanet(model, { x: midx-120, y: height-550 }, conf.UNHABITEDPLANETCOLOR, sprite5);
     
 
-    model = addBigPlanet(model, { x: midx, y: midy }, conf.UNHABITEDPLANETCOLOR);
+    model = addBigPlanet(model, { x: midx, y: midy }, conf.UNHABITEDPLANETCOLOR, sprite5);
 
     model = addRectangle(model, { x: midx-50, y: 0, width: 100, height: midy-150, color: 'lightgrey' });
     model = addRectangle(model, { x: midx-50, y: midy+150, width:100, height: midy-150, color: 'lightgrey' });
